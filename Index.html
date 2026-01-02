@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Góc Nhỏ Ấm Áp</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="center">
+
+<div class="glass login">
+  <h1>🔥 NỐI CHỮ CỘNG ĐỒNG</h1>
+  <input id="name" placeholder="Tên của bạn">
+  <input id="room" placeholder="Mã phòng">
+  <button onclick="join()">Vào phòng</button>
+</div>
+
+<script>
+function join(){
+  if(!name.value || !room.value) return alert("Nhập đủ thông tin");
+  localStorage.setItem("player", name.value);
+  location.href = "room.html?room=" + room.value;
+}
+</script>
+
+</body>
+</html>
