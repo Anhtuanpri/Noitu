@@ -1,91 +1,30 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Phòng Nối Chữ</title>
-<link rel="stylesheet" href="style.css">
-
-<!-- Firebase SDK v12 -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getDatabase, ref, push, onChildAdded }
-    from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDiv0nqf1Gse7sDxwVVon-LtL_kbkLYS3A",
-    authDomain: "noitu-560ef.firebaseapp.com",
-    projectId: "noitu-560ef",
-    databaseURL: "https://noitu-560ef-default-rtdb.firebaseio.com"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  const roomId = new URLSearchParams(location.search).get("room");
-  const user = localStorage.getItem("username");
-  const roomRef = ref(db, "rooms/" + roomId + "/chat");
-
-  const chatBox = document.getElementById("chatBox");
-
-  function addMsg(user, text, host=false){
-    const div = document.createElement("div");
-    div.className = "msg " + (host ? "host" : "user");
-    div.innerHTML = `<b>${user}</b><br>${text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  onChildAdded(roomRef, snap=>{
-    const d = snap.val();
-    addMsg(d.user, d.text, d.user==="HOST");
-  });
-
-  window.send = async function(){
-    const input = document.getElementById("input");
-    const text = input.value.trim();
-    if(!text) return;
-    input.value = "";
-
-    // gửi chat cho mọi người
-    push(roomRef,{ user, text });
-
-    // command
-    if(text.startsWith("/")){
-      const isStart = text.startsWith("/start");
-      const endpoint = isStart ? "/start" : "/host";
-      const body = isStart ? { word:text.replace("/start","").trim() } : {};
-
-      const r = await fetch(endpoint,{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(body)
-      });
-      const d = await r.json();
-
-      push(roomRef,{ user:"HOST", text:d.text || d.host });
-    }
-  }
-</script>
+  <meta charset="UTF-8">
+  <title>Nối chữ</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+<body class="center">
 
-<body>
+<div class="card glass">
+  <h1>🔥 NỐI CHỮ CỘNG ĐỒNG</h1>
 
-<div class="layout">
-  <div class="header">
-    👥 Phòng: <span id="roomName"></span>
-  </div>
+  <input id="name" placeholder="Tên của bạn">
+  <input id="room" placeholder="Mã phòng">
 
-  <div id="chatBox" class="chat"></div>
-
-  <div class="input-row">
-    <input id="input" placeholder="/host | /start vì | nhập từ">
-    <button onclick="send()">Gửi</button>
-  </div>
+  <button onclick="join()">Vào phòng</button>
 </div>
 
 <script>
-document.getElementById("roomName").innerText =
-  new URLSearchParams(location.search).get("room");
+function join(){
+  if(!name.value || !room.value){
+    alert("Nhập đủ tên và phòng");
+    return;
+  }
+  localStorage.setItem("username", name.value);
+  location.href = "room.html?room=" + room.value;
+}
 </script>
 
 </body>
