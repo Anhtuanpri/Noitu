@@ -2,28 +2,34 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Nối chữ</title>
+<title>Nối chữ Online</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="center">
 
 <div class="card glass">
   <h1>🔥 NỐI CHỮ ONLINE</h1>
+  <p class="subtitle">Tạo phòng – chia sẻ link – chơi cùng nhau</p>
 
-  <input id="name" placeholder="Tên của bạn">
-  <input id="room" placeholder="Mã phòng">
+  <input id="name" placeholder="Nhập tên của bạn">
 
-  <button onclick="join()">Vào phòng</button>
+  <button onclick="createRoom()">🎮 Tạo phòng</button>
 </div>
 
 <script>
-function join(){
-  if(!name.value || !room.value){
-    alert("Nhập tên và mã phòng");
+function randomRoom(){
+  return Math.random().toString(36).substring(2, 8);
+}
+
+function createRoom(){
+  const username = document.getElementById("name").value.trim();
+  if(!username){
+    alert("Nhập tên");
     return;
   }
-  localStorage.setItem("username", name.value);
-  location.href = "room.html?room=" + room.value;
+  localStorage.setItem("username", username);
+  const roomId = randomRoom();
+  location.href = `room.html?room=${roomId}`;
 }
 </script>
 
