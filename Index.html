@@ -3,7 +3,7 @@
 <head>
 <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 Mobile – FULL FIX</title>
+<title>Run 3 Mobile – TRUE HOLD</title>
 
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,35 +13,28 @@
 
 <style>
 html,body{
-    margin:0;
-    padding:0;
-    height:100%;
-    overflow:hidden;
-    background:#000;
+    margin:0;padding:0;height:100%;
+    overflow:hidden;background:#000;
     touch-action:none;
 }
-#openfl-content{
-    width:100%;
-    height:100%;
-}
+#openfl-content{ width:100%;height:100%; }
 
-/* ===== BUTTONS ===== */
+/* ===== Buttons ===== */
 .control{
     position:fixed;
-    bottom:22px;
-    width:80px;
-    height:80px;
+    bottom:24px;
+    width:86px;
+    height:86px;
     border-radius:50%;
     background:rgba(255,255,255,0.25);
     border:2px solid rgba(255,255,255,0.6);
-    color:#fff;
-    font-size:34px;
+    color:white;
+    font-size:36px;
     display:flex;
     align-items:center;
     justify-content:center;
     user-select:none;
-    pointer-events:auto;
-    z-index:9999; /* QUAN TRỌNG */
+    z-index:9999;
 }
 #leftBtn{ left:20px; }
 #rightBtn{ right:20px; }
@@ -50,91 +43,77 @@ html,body{
 
 <body>
 <div id="openfl-content"></div>
-
 <div id="leftBtn" class="control">⟲</div>
 <div id="rightBtn" class="control">⟳</div>
 
 <script>
 lime.embed("Run3","openfl-content",800,600,{});
 
-/* ===== KEY SENDER ===== */
-function key(type, code, kc){
-    document.dispatchEvent(new KeyboardEvent(type,{
-        code:code,
-        key:code==="Space"?" ":code,
-        keyCode:kc,
-        which:kc,
-        bubbles:true
-    }));
+/* ===== Key helpers ===== */
+function keyDown(code, kc){
+  document.dispatchEvent(new KeyboardEvent("keydown",{
+    code:code, key:code==="Space"?" ":code,
+    keyCode:kc, which:kc, bubbles:true
+  }));
+}
+function keyUp(code, kc){
+  document.dispatchEvent(new KeyboardEvent("keyup",{
+    code:code, key:code==="Space"?" ":code,
+    keyCode:kc, which:kc, bubbles:true
+  }));
 }
 
-/* =====================
-   JUMP (CHỈ KHI KHÔNG ẤN NÚT)
-   ===================== */
-let jumping = false;
-
-document.addEventListener("touchstart", e=>{
-    if(e.target.classList.contains("control")) return;
-    e.preventDefault();
-    jumping = true;
-    key("keydown","Space",32);
+/* ===== JUMP: tap anywhere except buttons ===== */
+let jumping=false;
+document.addEventListener("touchstart",e=>{
+  if(e.target.classList.contains("control")) return;
+  jumping=true;
+  keyDown("Space",32);
 },{passive:false});
 
-document.addEventListener("touchend", e=>{
-    if(jumping){
-        key("keyup","Space",32);
-        jumping = false;
+document.addEventListener("touchend",e=>{
+  if(jumping){
+    keyUp("Space",32);
+    jumping=false;
+  }
+},{passive:false});
+
+/* ===== TRUE HOLD ROTATE ===== */
+function bindHold(btn, dir){
+  let active=false;
+
+  btn.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(active) return;
+    active=true;
+    if(dir==="left") keyDown("ArrowLeft",37);
+    else keyDown("ArrowRight",39);
+  },{passive:false});
+
+  btn.addEventListener("touchend",e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(!active) return;
+    active=false;
+    if(dir==="left") keyUp("ArrowLeft",37);
+    else keyUp("ArrowRight",39);
+  },{passive:false});
+
+  btn.addEventListener("touchcancel",()=>{
+    if(active){
+      if(dir==="left") keyUp("ArrowLeft",37);
+      else keyUp("ArrowRight",39);
+      active=false;
     }
-},{passive:false});
-
-/* =====================
-   HOLD ROTATE (NÚT)
-   ===================== */
-let rotateTimer = null;
-const ROTATE_SPEED = 30; // càng nhỏ xoay càng nhanh
-
-function startRotate(dir){
-    if(rotateTimer) return;
-    rotateTimer = setInterval(()=>{
-        if(dir==="left"){
-            key("keydown","ArrowLeft",37);
-            key("keyup","ArrowLeft",37);
-        }else{
-            key("keydown","ArrowRight",39);
-            key("keyup","ArrowRight",39);
-        }
-    }, ROTATE_SPEED);
+  });
 }
 
-function stopRotate(){
-    clearInterval(rotateTimer);
-    rotateTimer = null;
-}
+bindHold(leftBtn,"left");
+bindHold(rightBtn,"right");
 
-function bindRotate(btn, dir){
-    btn.addEventListener("touchstart", e=>{
-        e.preventDefault();
-        e.stopPropagation(); // QUAN TRỌNG
-        startRotate(dir);
-    }, {passive:false});
-
-    btn.addEventListener("touchend", e=>{
-        e.preventDefault();
-        e.stopPropagation();
-        stopRotate();
-    }, {passive:false});
-
-    btn.addEventListener("touchcancel", stopRotate);
-}
-
-bindRotate(leftBtn, "left");
-bindRotate(rightBtn, "right");
-
-/* block scroll hoàn toàn */
-document.body.addEventListener("touchmove", e=>{
-    e.preventDefault();
-}, {passive:false});
+/* block scroll */
+document.body.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
 </script>
-
 </body>
 </html>
