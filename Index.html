@@ -1,120 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
-    <meta charset="utf-8">
+<meta charset="utf-8">
+<title>Run 3 – Mobile Stable</title>
 
-    <title>Run 3 – Mobile Fixed</title>
+<meta name="viewport"
+      content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
 
-    <meta name="viewport"
-          content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="shortcut icon"
+      href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/favicon.png">
 
-    <link rel="shortcut icon" href="./favicon.png">
+<script src="https://cdn.jsdelivr.net/gh/cooldude2349/bugfixes@main/Run3beta.js"></script>
 
-    <!-- Run 3 engine -->
-    <script src="https://cdn.jsdelivr.net/gh/cooldude2349/bugfixes@main/Run3beta.js"></script>
-
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            touch-action: none;
-        }
-        #openfl-content {
-            width: 100%;
-            height: 100%;
-            background: #000;
-        }
-    </style>
+<style>
+html,body{
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    touch-action:none;
+}
+#openfl-content{
+    width:100%;
+    height:100%;
+}
+</style>
 </head>
 
 <body>
-
-<noscript>Please enable JavaScript</noscript>
 <div id="openfl-content"></div>
 
 <script>
-/* ========= EMBED GAME ========= */
 lime.embed("Run3", "openfl-content", 800, 600, {});
 
-/* ========= KEY EMULATOR ========= */
-function sendKey(type, code, key, keyCode) {
-    document.dispatchEvent(
-        new KeyboardEvent(type, {
-            code: code,
-            key: key,
-            keyCode: keyCode,
-            which: keyCode,
-            bubbles: true
-        })
-    );
+/* ===== KEY SENDER ===== */
+function key(type, code, kc){
+    document.dispatchEvent(new KeyboardEvent(type,{
+        code: code,
+        key: code==="Space" ? " " : code,
+        keyCode: kc,
+        which: kc,
+        bubbles:true
+    }));
 }
 
-/* ========= HOLD JUMP (FIX CHÍNH) ========= */
+/* ===== JUMP (1 FINGER ONLY) ===== */
+let jumping = false;
 let jumpLoop = null;
 
-document.addEventListener("touchstart", e => {
+document.addEventListener("touchstart", e=>{
+    if(e.touches.length !== 1) return; // chỉ 1 ngón mới nhảy
     e.preventDefault();
 
-    if (!jumpLoop) {
-        // gửi liên tục để engine hiểu là ĐANG GIỮ
-        sendKey("keydown", "Space", " ", 32);
-        jumpLoop = setInterval(() => {
-            sendKey("keydown", "Space", " ", 32);
-        }, 30); // ~33fps
-    }
-}, { passive: false });
+    jumping = true;
+    key("keydown","Space",32);
+    jumpLoop = setInterval(()=>{
+        key("keydown","Space",32);
+    },30);
+},{passive:false});
 
-document.addEventListener("touchend", e => {
-    e.preventDefault();
-
-    if (jumpLoop) {
+document.addEventListener("touchend", e=>{
+    if(jumping){
         clearInterval(jumpLoop);
         jumpLoop = null;
+        key("keyup","Space",32);
+        jumping = false;
     }
-    sendKey("keyup", "Space", " ", 32);
-}, { passive: false });
+},{passive:false});
 
-/* ========= SWIPE ROTATE ========= */
-let startX = null;
+/* ===== ROTATE (2 FINGERS ONLY) ===== */
+let twoFingerStartX = null;
 
-document.addEventListener("touchstart", e => {
-    startX = e.touches[0].clientX;
-}, { passive: false });
+document.addEventListener("touchstart", e=>{
+    if(e.touches.length === 2){
+        twoFingerStartX =
+            (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    }
+},{passive:false});
 
-document.addEventListener("touchend", e => {
-    if (startX === null) return;
+document.addEventListener("touchend", e=>{
+    if(twoFingerStartX === null || jumping) return;
 
-    const dx = e.changedTouches[0].clientX - startX;
+    let dx =
+      ((e.changedTouches[0]?.clientX || 0) - twoFingerStartX);
 
-    if (Math.abs(dx) > 50) {
-        if (dx > 0) {
-            sendKey("keydown", "ArrowRight", "ArrowRight", 39);
-            setTimeout(() =>
-                sendKey("keyup", "ArrowRight", "ArrowRight", 39), 50);
-        } else {
-            sendKey("keydown", "ArrowLeft", "ArrowLeft", 37);
-            setTimeout(() =>
-                sendKey("keyup", "ArrowLeft", "ArrowLeft", 37), 50);
+    if(Math.abs(dx) > 60){
+        if(dx > 0){
+            key("keydown","ArrowRight",39);
+            setTimeout(()=>key("keyup","ArrowRight",39),60);
+        }else{
+            key("keydown","ArrowLeft",37);
+            setTimeout(()=>key("keyup","ArrowLeft",37),60);
         }
     }
+    twoFingerStartX = null;
+},{passive:false});
 
-    startX = null;
-}, { passive: false });
-
-/* ========= BLOCK SCROLL ========= */
-document.body.addEventListener("touchmove", e => e.preventDefault(), {
-    passive: false
-});
+document.body.addEventListener("touchmove",
+    e=>e.preventDefault(),{passive:false});
 </script>
-
-<!-- Optional -->
-<script src="js/analytics_ubg_v1_4.js"></script>
-<script src="js/redirect_v1_0.js"></script>
 
 </body>
 </html>
