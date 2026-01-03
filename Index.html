@@ -373,8 +373,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ⚠️⚠️⚠️ PASTE API KEY CỦA BẠN VÀO ĐÂY ⚠️⚠️⚠️
-        const OPENAI_API_KEY = "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";
+        // ⚠️⚠️⚠️ PASTE API KEY OPENAI CỦA BẠN VÀO ĐÂY ⚠️⚠️⚠️
+        const OPENAI_API_KEY = "YOUR_API_KEY_HERE";
 
         // Global state
         let currentRoom = null;
@@ -483,6 +483,8 @@
 
         async function generateRootWord(roomId) {
             try {
+                console.log('🚀 Bắt đầu tạo từ gốc...');
+                
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -499,44 +501,56 @@
                     })
                 });
 
+                console.log('📡 Response status:', response.status);
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('API Error Response:', errorData);
-                    throw new Error(`API Error: ${errorData.error?.message || response.statusText}`);
+                    const errorText = await response.text();
+                    console.error('❌ API Error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
                 const data = await response.json();
-                console.log('API Success Response:', data);
+                console.log('✅ API Response:', data);
                 
                 const content = data.choices[0].message.content;
                 const parsed = JSON.parse(content.replace(/```json\n?|\n?```/g, ''));
                 
-                const stateRef = ref(db, `rooms/${roomId}/state`);
-                await update(stateRef, {
+                await update(ref(db, `rooms/${roomId}/state`), {
                     root: parsed.root,
                     gameActive: true
                 });
 
                 await addSystemMessage(roomId, `🎮 Game bắt đầu! Từ gốc: ${parsed.root}`);
-            } catch (error) {
-                console.error('Error generating root:', error);
-                console.error('Error details:', {
-                    message: error.message,
-                    stack: error.stack
-                });
                 
-                let errorMsg = 'Lỗi khi tạo từ gốc!\n\n';
-                if (error.message.includes('401')) {
-                    errorMsg += '❌ API Key không hợp lệ hoặc đã hết hạn.\nVui lòng kiểm tra lại API key trong code!';
+            } catch (error) {
+                console.error('💥 Full error:', error);
+                
+                let msg = '❌ Lỗi khi tạo từ gốc!\n\n';
+                
+                if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                    msg += '🌐 LỖI CORS: Không thể gọi OpenAI API từ browser!\n\n';
+                    msg += '💡 NGUYÊN NHÂN:\n';
+                    msg += '- OpenAI API chặn request từ browser vì lý do bảo mật\n';
+                    msg += '- Cần deploy lên server hoặc dùng proxy\n\n';
+                    msg += '🔧 GIẢI PHÁP:\n';
+                    msg += '1. Deploy lên Netlify/Vercel (khuyên dùng)\n';
+                    msg += '2. Dùng Cloudflare Workers làm proxy\n';
+                    msg += '3. Tạo backend đơn giản với Node.js\n\n';
+                    msg += '📌 File HTML này KHÔNG thể chạy trực tiếp từ file:// hoặc local host do CORS policy của OpenAI.';
+                } else if (error.message.includes('401')) {
+                    msg += '🔑 API Key không hợp lệ!\n';
+                    msg += 'Kiểm tra lại API key trong code.';
                 } else if (error.message.includes('429')) {
-                    errorMsg += '❌ Tài khoản OpenAI chưa nạp tiền hoặc đã hết quota.\nVui lòng nạp tiền vào tài khoản OpenAI!';
+                    msg += '💳 Tài khoản chưa nạp tiền!\n';
+                    msg += 'Vui lòng nạp ít nhất $5 vào OpenAI.';
                 } else if (error.message.includes('insufficient_quota')) {
-                    errorMsg += '❌ Tài khoản OpenAI hết quota.\nVui lòng nạp thêm tiền!';
+                    msg += '💰 Tài khoản hết quota!\n';
+                    msg += 'Vui lòng nạp thêm tiền.';
                 } else {
-                    errorMsg += `Chi tiết: ${error.message}`;
+                    msg += `Chi tiết: ${error.message}`;
                 }
                 
-                alert(errorMsg);
+                alert(msg);
             }
         }
 
@@ -822,8 +836,7 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
             const players = playersSnapshot.val() || {};
 
             for (const name of Object.keys(players)) {
-                await update(ref(db, `rooms/${currentRoom}/players/${name}`), {
-                    alive: true,
+                await update(ref(db, `rooms/${currentRoom}/players/${name}`), {alive: true,
                     score: 0
                 });
             }
@@ -851,3 +864,4 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
     </script>
 </body>
 </html>
+                    
