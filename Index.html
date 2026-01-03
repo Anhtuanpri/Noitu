@@ -3,23 +3,46 @@
 <head>
 <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 Mobile – TRUE HOLD</title>
+<title>Run 3 Mobile – Video Background</title>
 
-<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
+<meta name="viewport"
+      content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
 <link rel="shortcut icon" href="./favicon.png">
 <script src="https://cdn.jsdelivr.net/gh/cooldude2349/bugfixes@main/Run3beta.js"></script>
 
 <style>
+/* ===== RESET ===== */
 html,body{
-    margin:0;padding:0;height:100%;
-    overflow:hidden;background:#000;
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow:hidden;
+    background:#000;
     touch-action:none;
 }
-#openfl-content{ width:100%;height:100%; }
 
-/* ===== Buttons ===== */
+/* ===== VIDEO BACKGROUND ===== */
+#bg-video{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:-2;
+    pointer-events:none;
+    opacity:0.35;       /* chỉnh đậm nhạt nền */
+}
+
+/* ===== GAME CANVAS ===== */
+#openfl-content{
+    width:100%;
+    height:100%;
+    background:transparent;
+}
+
+/* ===== CONTROL BUTTONS ===== */
 .control{
     position:fixed;
     bottom:24px;
@@ -42,78 +65,97 @@ html,body{
 </head>
 
 <body>
+
+<!-- ===== SPACE BACKGROUND VIDEO ===== -->
+<video id="bg-video" autoplay muted loop playsinline>
+    <source src="space.mp4" type="video/mp4">
+</video>
+
+<!-- ===== GAME ===== -->
 <div id="openfl-content"></div>
+
+<!-- ===== CONTROLS ===== -->
 <div id="leftBtn" class="control">⟲</div>
 <div id="rightBtn" class="control">⟳</div>
 
 <script>
+/* ===== EMBED GAME ===== */
 lime.embed("Run3","openfl-content",800,600,{});
 
-/* ===== Key helpers ===== */
+/* ===== KEY HELPERS ===== */
 function keyDown(code, kc){
-  document.dispatchEvent(new KeyboardEvent("keydown",{
-    code:code, key:code==="Space"?" ":code,
-    keyCode:kc, which:kc, bubbles:true
-  }));
+    document.dispatchEvent(new KeyboardEvent("keydown",{
+        code:code,
+        key:code==="Space"?" ":code,
+        keyCode:kc,
+        which:kc,
+        bubbles:true
+    }));
 }
 function keyUp(code, kc){
-  document.dispatchEvent(new KeyboardEvent("keyup",{
-    code:code, key:code==="Space"?" ":code,
-    keyCode:kc, which:kc, bubbles:true
-  }));
+    document.dispatchEvent(new KeyboardEvent("keyup",{
+        code:code,
+        key:code==="Space"?" ":code,
+        keyCode:kc,
+        which:kc,
+        bubbles:true
+    }));
 }
 
-/* ===== JUMP: tap anywhere except buttons ===== */
+/* ===== JUMP: TAP ANYWHERE (EXCEPT BUTTONS) ===== */
 let jumping=false;
+
 document.addEventListener("touchstart",e=>{
-  if(e.target.classList.contains("control")) return;
-  jumping=true;
-  keyDown("Space",32);
+    if(e.target.classList.contains("control")) return;
+    jumping=true;
+    keyDown("Space",32);
 },{passive:false});
 
 document.addEventListener("touchend",e=>{
-  if(jumping){
-    keyUp("Space",32);
-    jumping=false;
-  }
+    if(jumping){
+        keyUp("Space",32);
+        jumping=false;
+    }
 },{passive:false});
 
 /* ===== TRUE HOLD ROTATE ===== */
 function bindHold(btn, dir){
-  let active=false;
+    let active=false;
 
-  btn.addEventListener("touchstart",e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    if(active) return;
-    active=true;
-    if(dir==="left") keyDown("ArrowLeft",37);
-    else keyDown("ArrowRight",39);
-  },{passive:false});
+    btn.addEventListener("touchstart",e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        if(active) return;
+        active=true;
+        if(dir==="left") keyDown("ArrowLeft",37);
+        else keyDown("ArrowRight",39);
+    },{passive:false});
 
-  btn.addEventListener("touchend",e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    if(!active) return;
-    active=false;
-    if(dir==="left") keyUp("ArrowLeft",37);
-    else keyUp("ArrowRight",39);
-  },{passive:false});
+    btn.addEventListener("touchend",e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        if(!active) return;
+        active=false;
+        if(dir==="left") keyUp("ArrowLeft",37);
+        else keyUp("ArrowRight",39);
+    },{passive:false});
 
-  btn.addEventListener("touchcancel",()=>{
-    if(active){
-      if(dir==="left") keyUp("ArrowLeft",37);
-      else keyUp("ArrowRight",39);
-      active=false;
-    }
-  });
+    btn.addEventListener("touchcancel",()=>{
+        if(active){
+            if(dir==="left") keyUp("ArrowLeft",37);
+            else keyUp("ArrowRight",39);
+            active=false;
+        }
+    });
 }
 
 bindHold(leftBtn,"left");
 bindHold(rightBtn,"right");
 
-/* block scroll */
-document.body.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+/* ===== BLOCK SCROLL ===== */
+document.body.addEventListener("touchmove",
+    e=>e.preventDefault(),{passive:false});
 </script>
+
 </body>
 </html>
