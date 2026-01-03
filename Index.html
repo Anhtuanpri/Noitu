@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Run 3 – Mobile Stable</title>
+<title>Run 3 – Mobile Stable Final</title>
 
 <meta name="viewport"
       content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
@@ -20,7 +21,6 @@ html,body{
     height:100%;
     overflow:hidden;
     background:#000;
-    touch-action:none;
 }
 #openfl-content{
     width:100%;
@@ -35,7 +35,7 @@ html,body{
 <script>
 lime.embed("Run3", "openfl-content", 800, 600, {});
 
-/* ===== KEY SENDER ===== */
+/* ===== KEY ===== */
 function key(type, code, kc){
     document.dispatchEvent(new KeyboardEvent(type,{
         code: code,
@@ -46,60 +46,45 @@ function key(type, code, kc){
     }));
 }
 
-/* ===== JUMP (1 FINGER ONLY) ===== */
-let jumping = false;
-let jumpLoop = null;
+/* ===== TAP & DOUBLE TAP ===== */
+let lastTap = 0;
 
 document.addEventListener("touchstart", e=>{
-    if(e.touches.length !== 1) return; // chỉ 1 ngón mới nhảy
     e.preventDefault();
 
-    jumping = true;
-    key("keydown","Space",32);
-    jumpLoop = setInterval(()=>{
+    const now = Date.now();
+    const delta = now - lastTap;
+
+    // single tap = nhảy ngắn
+    if(delta > 300){
         key("keydown","Space",32);
-    },30);
-},{passive:false});
-
-document.addEventListener("touchend", e=>{
-    if(jumping){
-        clearInterval(jumpLoop);
-        jumpLoop = null;
-        key("keyup","Space",32);
-        jumping = false;
+        setTimeout(()=>key("keyup","Space",32),120);
     }
+    // double tap = nhảy xa
+    else{
+        key("keydown","Space",32);
+        setTimeout(()=>key("keyup","Space",32),260);
+    }
+
+    lastTap = now;
 },{passive:false});
 
-/* ===== ROTATE (2 FINGERS ONLY) ===== */
-let twoFingerStartX = null;
-
+/* ===== ROTATE: TAP EDGE ===== */
 document.addEventListener("touchstart", e=>{
-    if(e.touches.length === 2){
-        twoFingerStartX =
-            (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const x = e.touches[0].clientX;
+    const w = window.innerWidth;
+
+    // trái màn hình
+    if(x < w * 0.2){
+        key("keydown","ArrowLeft",37);
+        setTimeout(()=>key("keyup","ArrowLeft",37),80);
+    }
+    // phải màn hình
+    else if(x > w * 0.8){
+        key("keydown","ArrowRight",39);
+        setTimeout(()=>key("keyup","ArrowRight",39),80);
     }
 },{passive:false});
-
-document.addEventListener("touchend", e=>{
-    if(twoFingerStartX === null || jumping) return;
-
-    let dx =
-      ((e.changedTouches[0]?.clientX || 0) - twoFingerStartX);
-
-    if(Math.abs(dx) > 60){
-        if(dx > 0){
-            key("keydown","ArrowRight",39);
-            setTimeout(()=>key("keyup","ArrowRight",39),60);
-        }else{
-            key("keydown","ArrowLeft",37);
-            setTimeout(()=>key("keyup","ArrowLeft",37),60);
-        }
-    }
-    twoFingerStartX = null;
-},{passive:false});
-
-document.body.addEventListener("touchmove",
-    e=>e.preventDefault(),{passive:false});
 </script>
 
 </body>
