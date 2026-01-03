@@ -3,9 +3,10 @@
 <head>
 <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 Mobile Controls</title>
+<title>Run 3 Mobile – Hold Rotate</title>
 
-<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
+<meta name="viewport"
+      content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
 <link rel="shortcut icon" href="./favicon.png">
@@ -17,21 +18,18 @@ html,body{
     overflow:hidden;background:#000;
     touch-action:none;
 }
-#openfl-content{
-    width:100%;height:100%;
-}
+#openfl-content{ width:100%;height:100%; }
 
-/* ==== MOBILE BUTTONS ==== */
+/* ===== Controls ===== */
 .control{
     position:fixed;
     bottom:20px;
-    width:70px;
-    height:70px;
+    width:80px;height:80px;
     border-radius:50%;
-    background:rgba(255,255,255,0.2);
-    border:2px solid rgba(255,255,255,0.5);
+    background:rgba(255,255,255,0.22);
+    border:2px solid rgba(255,255,255,0.6);
     color:white;
-    font-size:28px;
+    font-size:34px;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -39,21 +37,19 @@ html,body{
 }
 #leftBtn{ left:20px; }
 #rightBtn{ right:20px; }
-
 </style>
 </head>
 
 <body>
 <div id="openfl-content"></div>
 
-<!-- Buttons -->
 <div id="leftBtn" class="control">⟲</div>
 <div id="rightBtn" class="control">⟳</div>
 
 <script>
 lime.embed("Run3","openfl-content",800,600,{});
 
-/* ===== KEY EMULATOR ===== */
+/* ===== KEY SENDER ===== */
 function key(type, code, kc){
     document.dispatchEvent(new KeyboardEvent(type,{
         code:code,
@@ -64,9 +60,8 @@ function key(type, code, kc){
     }));
 }
 
-/* ===== JUMP (TAP / HOLD) ===== */
+/* ===== JUMP (HOLD) ===== */
 let jumping=false;
-
 document.addEventListener("touchstart",e=>{
     if(e.target.classList.contains("control")) return;
     jumping=true;
@@ -80,40 +75,44 @@ document.addEventListener("touchend",e=>{
     }
 },{passive:false});
 
-/* ===== ROTATE BUTTONS ===== */
-function rotateLeft(){
-    key("keydown","ArrowLeft",37);
-    setTimeout(()=>key("keyup","ArrowLeft",37),80);
+/* ===== HOLD ROTATE (FAST) ===== */
+let rotateTimer=null;
+const ROTATE_SPEED = 35; // càng nhỏ càng nhanh (ms)
+
+function startRotate(dir){
+    if(rotateTimer) return;
+    rotateTimer = setInterval(()=>{
+        if(dir==="left"){
+            key("keydown","ArrowLeft",37);
+            key("keyup","ArrowLeft",37);
+        }else{
+            key("keydown","ArrowRight",39);
+            key("keyup","ArrowRight",39);
+        }
+    }, ROTATE_SPEED);
 }
-function rotateRight(){
-    key("keydown","ArrowRight",39);
-    setTimeout(()=>key("keyup","ArrowRight",39),80);
+function stopRotate(){
+    clearInterval(rotateTimer);
+    rotateTimer=null;
 }
 
 leftBtn.addEventListener("touchstart",e=>{
-    e.preventDefault(); rotateLeft();
+    e.preventDefault();
+    startRotate("left");
 },{passive:false});
 
 rightBtn.addEventListener("touchstart",e=>{
-    e.preventDefault(); rotateRight();
+    e.preventDefault();
+    startRotate("right");
 },{passive:false});
 
-/* ===== HOLD + SWIPE (OPTIONAL) ===== */
-let startX=null;
-
-document.addEventListener("touchstart",e=>{
-    startX=e.touches[0].clientX;
-},{passive:false});
-
-document.addEventListener("touchmove",e=>{
-    if(!jumping || startX===null) return;
-    let dx=e.touches[0].clientX-startX;
-    if(dx>60){ rotateRight(); startX=null; }
-    if(dx<-60){ rotateLeft(); startX=null; }
-},{passive:false});
+leftBtn.addEventListener("touchend",stopRotate);
+rightBtn.addEventListener("touchend",stopRotate);
 
 /* block scroll */
-document.body.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+document.body.addEventListener("touchmove",
+    e=>e.preventDefault(),{passive:false});
 </script>
+
 </body>
 </html>
