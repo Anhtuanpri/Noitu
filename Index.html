@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Nối Từ Ghép AI</title>
+<title>Nối Từ Ghép</title>
 
 <style>
 *{box-sizing:border-box}
@@ -15,14 +15,14 @@ body{
 }
 .center{display:flex;align-items:center;justify-content:center;height:100vh}
 .card{
-  width:360px;padding:24px;border-radius:18px;
+  width:340px;padding:24px;border-radius:18px;
   background:rgba(255,255,255,.06);
   backdrop-filter:blur(14px);
   box-shadow:0 0 30px rgba(139,92,246,.4);
   text-align:center;
 }
 .room{
-  max-width:600px;margin:0 auto;height:100vh;
+  max-width:560px;margin:0 auto;height:100vh;
   display:flex;flex-direction:column;
 }
 .header{
@@ -80,12 +80,10 @@ button.send{
 <!-- LOGIN -->
 <div id="login" class="center">
   <div class="card">
-    <h2>🔮 NỐI TỪ GHÉP AI</h2>
+    <h2>🔗 Nối Từ Ghép</h2>
     <input id="nameInput" placeholder="Tên của bạn">
     <button onclick="enter()">Vào chơi</button>
-    <p style="font-size:13px;color:#aaa">
-      /start dùng list · /bot dùng GPT
-    </p>
+    <p style="font-size:13px;color:#aaa">Sai 1 lần = loại</p>
   </div>
 </div>
 
@@ -99,7 +97,7 @@ button.send{
   <div id="chat" class="chat"></div>
 
   <div class="input-row">
-    <input id="text" placeholder="Nhập từ ghép hoặc lệnh">
+    <input id="text" placeholder="Nhập từ ghép (vd: tổ quốc)">
     <button class="send" onclick="send()">Gửi</button>
   </div>
 </div>
@@ -107,10 +105,7 @@ button.send{
 <div id="toast"></div>
 
 <script type="module">
-/* ========= GPT API KEY ========= */
-const OPENAI_API_KEY = "sk-XXXXXXXXXXXXXXXXXXXXXXXX";
-
-/* ========= FIREBASE ========= */
+/* ===== FIREBASE ===== */
 import { initializeApp } from
   "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import {
@@ -118,11 +113,11 @@ import {
 } from
   "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
-/* ROOM */
+/* ===== ROOM ID ===== */
 const params = new URLSearchParams(location.search);
 const roomId = params.get("room") || "phong-chung";
 
-/* FIREBASE CONFIG */
+/* ===== FIREBASE CONFIG (CỦA BẠN) ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
   authDomain: "noitu-7dca6.firebaseapp.com",
@@ -136,13 +131,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+/* ===== REFS ===== */
 const chatRef = ref(db, `rooms/${roomId}/chat`);
 const stateRef = ref(db, `rooms/${roomId}/state`);
 
 let name = "";
 let eliminated = false;
-let mode = "list"; // list | bot
-let WORDS = [];
 
 /* UI */
 const chat = document.getElementById("chat");
@@ -163,86 +157,50 @@ function add(text, cls){
   chat.scrollTop=chat.scrollHeight;
 }
 
-/* LOAD WORD LIST */
-async function loadWords(){
-  const res = await fetch("words.txt");
-  const txt = await res.text();
-  WORDS = txt.split("\n").map(w=>w.trim()).filter(Boolean);
-}
-
 /* COPY LINK */
-copyLink.onclick = ()=>{
-  const url = location.origin+location.pathname+"?room="+roomId;
+document.getElementById("copyLink").onclick=()=>{
+  const url = location.origin + location.pathname + "?room=" + roomId;
   navigator.clipboard.writeText(url);
-  notify("Đã copy link",true);
+  notify("Đã copy link phòng", true);
 };
 
 /* ENTER */
 window.enter = async ()=>{
   name = nameInput.value.trim();
   if(!name) return;
-  await loadWords();
-
   login.classList.add("hidden");
   room.classList.remove("hidden");
 
   const snap = await get(stateRef);
   if(!snap.exists()){
-    const root = WORDS[Math.floor(Math.random()*WORDS.length)].split(" ")[0];
-    await set(stateRef,{ root });
-    add("🤖 Bắt đầu với: "+root,"system");
-    rootEl.textContent="Gốc: "+root;
+    const roots = ["tổ","con","ma","quốc","hồn"];
+    const root = roots[Math.floor(Math.random()*roots.length)];
+    await set(stateRef, { root });
+    add("🤖 Bắt đầu với: " + root, "system");
+    rootEl.textContent = "Gốc: " + root;
   }else{
-    rootEl.textContent="Gốc: "+snap.val().root;
+    rootEl.textContent = "Gốc: " + snap.val().root;
   }
 };
 
-/* LISTEN */
-onChildAdded(chatRef,s=>{
+/* LISTEN CHAT */
+onChildAdded(chatRef, s=>{
   const d=s.val();
-  add(d.text,d.cls);
+  add(d.text, d.cls);
 });
 
-/* LIST CHECK */
-function checkByList(root, word){
-  const ok = WORDS.find(w=>{
-    const p=w.split(" ");
-    return p[0]===root && w===word;
-  });
-  if(!ok) return null;
-  return word.split(" ").pop();
-}
-
-/* GPT CHECK */
-async function checkByGPT(root, word){
-  const r = await fetch("https://api.openai.com/v1/chat/completions",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+OPENAI_API_KEY
-    },
-    body:JSON.stringify({
-      model:"gpt-4o-mini",
-      messages:[
-        {role:"system",content:"Bạn là trọng tài nối từ ghép tiếng Việt."},
-        {role:"user",content:
-`Từ gốc: "${root}"
-Người chơi: "${word}"
-Trả JSON:
-{"valid":true,"next":"từ_cuối"} hoặc {"valid":false}`}
-      ],
-      temperature:0,
-      max_tokens:80
-    })
-  });
-  const j=await r.json();
-  return JSON.parse(j.choices[0].message.content);
+/* MOCK CHECK (CHẮC CHẠY) */
+function checkWord(root, answer){
+  const parts = answer.trim().toLowerCase().split(/\s+/);
+  if(parts.length < 2) return null;
+  if(parts[0] !== root) return null;
+  return parts[parts.length-1];
 }
 
 /* SEND */
 window.send = async ()=>{
   if(eliminated){
-    notify("Bạn đã bị loại",false);
+    notify("Bạn đã bị loại", false);
     return;
   }
 
@@ -250,44 +208,26 @@ window.send = async ()=>{
   if(!val) return;
   text.value="";
 
-  /* COMMANDS */
-  if(val==="/start"){
-    mode="list";
-    push(chatRef,{text:`⚡ ${name} chuyển sang LIST`,cls:"system"});
-    notify("Dùng list txt",true);
-    return;
-  }
-  if(val==="/bot"){
-    mode="bot";
-    push(chatRef,{text:`🤖 ${name} gọi GPT`,cls:"system"});
-    notify("Dùng GPT",true);
-    return;
-  }
-
   const st = (await get(stateRef)).val();
+  const next = checkWord(st.root, val);
 
-  try{
-    let next=null;
-
-    if(mode==="list"){
-      next = checkByList(st.root,val);
-      if(!next) throw "sai";
-    }else{
-      const rs = await checkByGPT(st.root,val);
-      if(!rs.valid) throw "sai";
-      next = rs.next;
-    }
-
-    await set(stateRef,{root:next});
-    push(chatRef,{text:`✅ ${name}: ${val}`,cls:"correct"});
-    rootEl.textContent="Gốc: "+next;
-    notify("Đúng!",true);
-
-  }catch{
-    eliminated=true;
-    push(chatRef,{text:`❌ ${name} sai và bị loại`,cls:"wrong"});
-    notify("Sai – bị loại",false);
+  if(!next){
+    eliminated = true;
+    push(chatRef,{
+      text:`❌ ${name} sai và bị loại`,
+      cls:"wrong"
+    });
+    notify("Sai – bạn bị loại", false);
+    return;
   }
+
+  await set(stateRef,{ root: next });
+  push(chatRef,{
+    text:`✅ ${name}: ${val}`,
+    cls:"correct"
+  });
+  rootEl.textContent="Gốc: "+next;
+  notify("Đúng!", true);
 };
 </script>
 
