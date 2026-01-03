@@ -3,10 +3,9 @@
 <head>
 <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 Mobile – Hold Rotate</title>
+<title>Run 3 Mobile – FULL FIX</title>
 
-<meta name="viewport"
-      content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
 <link rel="shortcut icon" href="./favicon.png">
@@ -14,26 +13,35 @@
 
 <style>
 html,body{
-    margin:0;padding:0;height:100%;
-    overflow:hidden;background:#000;
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow:hidden;
+    background:#000;
     touch-action:none;
 }
-#openfl-content{ width:100%;height:100%; }
+#openfl-content{
+    width:100%;
+    height:100%;
+}
 
-/* ===== Controls ===== */
+/* ===== BUTTONS ===== */
 .control{
     position:fixed;
-    bottom:20px;
-    width:80px;height:80px;
+    bottom:22px;
+    width:80px;
+    height:80px;
     border-radius:50%;
-    background:rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.25);
     border:2px solid rgba(255,255,255,0.6);
-    color:white;
+    color:#fff;
     font-size:34px;
     display:flex;
     align-items:center;
     justify-content:center;
     user-select:none;
+    pointer-events:auto;
+    z-index:9999; /* QUAN TRỌNG */
 }
 #leftBtn{ left:20px; }
 #rightBtn{ right:20px; }
@@ -60,24 +68,30 @@ function key(type, code, kc){
     }));
 }
 
-/* ===== JUMP (HOLD) ===== */
-let jumping=false;
-document.addEventListener("touchstart",e=>{
+/* =====================
+   JUMP (CHỈ KHI KHÔNG ẤN NÚT)
+   ===================== */
+let jumping = false;
+
+document.addEventListener("touchstart", e=>{
     if(e.target.classList.contains("control")) return;
-    jumping=true;
+    e.preventDefault();
+    jumping = true;
     key("keydown","Space",32);
 },{passive:false});
 
-document.addEventListener("touchend",e=>{
+document.addEventListener("touchend", e=>{
     if(jumping){
         key("keyup","Space",32);
-        jumping=false;
+        jumping = false;
     }
 },{passive:false});
 
-/* ===== HOLD ROTATE (FAST) ===== */
-let rotateTimer=null;
-const ROTATE_SPEED = 35; // càng nhỏ càng nhanh (ms)
+/* =====================
+   HOLD ROTATE (NÚT)
+   ===================== */
+let rotateTimer = null;
+const ROTATE_SPEED = 30; // càng nhỏ xoay càng nhanh
 
 function startRotate(dir){
     if(rotateTimer) return;
@@ -91,27 +105,35 @@ function startRotate(dir){
         }
     }, ROTATE_SPEED);
 }
+
 function stopRotate(){
     clearInterval(rotateTimer);
-    rotateTimer=null;
+    rotateTimer = null;
 }
 
-leftBtn.addEventListener("touchstart",e=>{
+function bindRotate(btn, dir){
+    btn.addEventListener("touchstart", e=>{
+        e.preventDefault();
+        e.stopPropagation(); // QUAN TRỌNG
+        startRotate(dir);
+    }, {passive:false});
+
+    btn.addEventListener("touchend", e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        stopRotate();
+    }, {passive:false});
+
+    btn.addEventListener("touchcancel", stopRotate);
+}
+
+bindRotate(leftBtn, "left");
+bindRotate(rightBtn, "right");
+
+/* block scroll hoàn toàn */
+document.body.addEventListener("touchmove", e=>{
     e.preventDefault();
-    startRotate("left");
-},{passive:false});
-
-rightBtn.addEventListener("touchstart",e=>{
-    e.preventDefault();
-    startRotate("right");
-},{passive:false});
-
-leftBtn.addEventListener("touchend",stopRotate);
-rightBtn.addEventListener("touchend",stopRotate);
-
-/* block scroll */
-document.body.addEventListener("touchmove",
-    e=>e.preventDefault(),{passive:false});
+}, {passive:false});
 </script>
 
 </body>
