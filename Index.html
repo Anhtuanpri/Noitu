@@ -10,60 +10,58 @@
 body{
   margin:0;
   font-family:system-ui;
-  background:linear-gradient(135deg,#020617,#120029);
+  background:radial-gradient(circle at top,#1e0b4b,#020617);
   color:#e5e7eb;
 }
+.hidden{display:none}
 .center{display:flex;align-items:center;justify-content:center;height:100vh}
-.card{
-  width:380px;padding:24px;border-radius:18px;
-  background:rgba(255,255,255,.07);
-  backdrop-filter:blur(14px);
-  box-shadow:0 0 30px rgba(139,92,246,.4);
-  text-align:center;
+.glass{
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(16px);
+  border-radius:20px;
+  box-shadow:0 0 40px rgba(168,85,247,.5);
+}
+.login{width:380px;padding:26px;text-align:center}
+.login input,.login button{
+  width:100%;margin:6px 0;padding:14px;
+  border:none;border-radius:14px;font-weight:700
+}
+.login button{
+  cursor:pointer;
+  background:linear-gradient(135deg,#7c3aed,#22d3ee);
 }
 .room{
-  max-width:600px;margin:0 auto;height:100vh;
-  display:flex;flex-direction:column;
+  max-width:640px;margin:0 auto;height:100vh;
+  display:flex;flex-direction:column
 }
 .header{
-  padding:12px;border-bottom:1px solid #334155;
-  display:flex;justify-content:space-between;align-items:center;
-  color:#c4b5fd;
+  display:flex;justify-content:space-between;
+  align-items:center;padding:12px;
+  border-bottom:1px solid #334155
 }
 .header button{
-  background:linear-gradient(135deg,#22d3ee,#a855f7);
-  border:none;border-radius:12px;
-  padding:6px 10px;font-weight:700;
-  cursor:pointer;
+  margin-left:6px;padding:6px 10px;
+  border:none;border-radius:10px;
+  font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,#22d3ee,#a855f7)
 }
-.chat{flex:1;overflow:auto;padding:12px}
-.msg{
-  margin:6px 0;padding:10px 14px;border-radius:14px;
-}
+.chat{flex:1;overflow:auto;padding:14px}
+.msg{margin:6px 0;padding:10px 14px;border-radius:14px}
 .system{background:#1e293b;color:#93c5fd}
 .correct{background:#052e16;color:#4ade80}
-.wrong{background:#450a0a;color:#f87171}
-.bxh{background:#020617;color:#fde68a;border:1px dashed #facc15}
-.input-row{
-  display:flex;gap:8px;padding:10px;
-  border-top:1px solid #334155;
+.wrong{background:#450a0a;color:#fca5a5}
+.input{
+  display:flex;gap:8px;padding:12px;
+  border-top:1px solid #334155
 }
-input{flex:1;padding:12px;border:none;border-radius:10px}
-button.send{
-  padding:12px 16px;border:none;border-radius:10px;
-  background:#7c3aed;color:#fff;font-weight:700;
+.input input{
+  flex:1;padding:14px;border:none;border-radius:14px
 }
-.hidden{display:none}
-
-/* toast */
-#toast{
-  position:fixed;top:20px;right:20px;
-  padding:10px 14px;border-radius:12px;
-  font-weight:700;opacity:0;transition:.25s;
+.input button{
+  padding:14px 18px;border:none;
+  border-radius:14px;font-weight:800;
+  background:#7c3aed;color:white
 }
-#toast.show{opacity:1}
-.toast-ok{background:#052e16;color:#4ade80}
-.toast-bad{background:#450a0a;color:#f87171}
 </style>
 </head>
 
@@ -71,81 +69,74 @@ button.send{
 
 <!-- LOGIN -->
 <div id="login" class="center">
-  <div class="card">
-    <h2>🔗 Nối Từ Ghép</h2>
+  <div class="glass login">
+    <h2>🔮 NỐI TỪ GHÉP</h2>
     <input id="nameInput" placeholder="Tên của bạn">
     <input id="hostInput" placeholder="Mã host (nếu có)">
-    <button onclick="enter()">Vào phòng</button>
-    <p style="font-size:13px;color:#aaa">
-      Nhập mã để làm host
+    <button onclick="enter()">VÀO PHÒNG</button>
+    <p style="font-size:13px;color:#9ca3af">
+      Tên được lưu – không mất khi reload
     </p>
+  </div>
+</div>
+
+<!-- POPUP MODE -->
+<div id="modePopup" class="center hidden">
+  <div class="glass login">
+    <h3>🎮 CHỌN CHẾ ĐỘ</h3>
+    <button onclick="startGame('list')">⚡ LIST</button>
+    <button onclick="startGame('gpt')">🤖 GPT</button>
   </div>
 </div>
 
 <!-- ROOM -->
 <div id="room" class="room hidden">
   <div class="header">
-    <span>🤖 Trọng tài · <span id="rootWord"></span></span>
-    <div>
-      <button id="copyLink">🔗</button>
-      <button id="resetGame" class="hidden">🔁</button>
-    </div>
+    <span id="rootWord">...</span>
+    <button onclick="copyLink()">🔗</button>
   </div>
-
   <div id="chat" class="chat"></div>
-
-  <div class="input-row">
+  <div class="input">
     <input id="text" placeholder="Nhập từ ghép">
-    <button class="send" onclick="send()">Gửi</button>
+    <button onclick="send()">GỬI</button>
   </div>
 </div>
 
-<div id="toast"></div>
-
 <script type="module">
-import { initializeApp } from
-  "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import {
-  getDatabase, ref, push, onChildAdded, set, get, update
-} from
-  "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
-
 /* ===== CONFIG ===== */
-const HOST_CODE = "1.2991.22283.33";
+const HOST_CODE="1.2991.22283.33";
+const OPENAI_API_KEY="sk-XXXXXXXXXXXXXXXX";
 
-const params = new URLSearchParams(location.search);
-const roomId = params.get("room") || "phong-chung";
+/* ===== FIREBASE ===== */
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import {
+  getDatabase, ref, get, set, update,
+  push, onChildAdded
+} from
+"https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
-/* Firebase */
-const firebaseConfig = {
-  apiKey: "AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
-  authDomain: "noitu-7dca6.firebaseapp.com",
-  databaseURL: "https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "noitu-7dca6",
-  messagingSenderId: "253854569418",
-  appId: "1:253854569418:web:105e8e3edfdd9baafff533"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const params=new URLSearchParams(location.search);
+const roomId=params.get("room")||"phong-chung";
 
-const chatRef = ref(db, `rooms/${roomId}/chat`);
-const stateRef = ref(db, `rooms/${roomId}/state`);
-const playersRef = ref(db, `rooms/${roomId}/players`);
+const app=initializeApp({
+  apiKey:"AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
+  authDomain:"noitu-7dca6.firebaseapp.com",
+  databaseURL:"https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"noitu-7dca6",
+  messagingSenderId:"253854569418",
+  appId:"1:253854569418:web:105e8e3edfdd9baafff533"
+});
+const db=getDatabase(app);
 
-let name="", isHost=false, eliminated=false;
+const stateRef=ref(db,`rooms/${roomId}/state`);
+const playersRef=ref(db,`rooms/${roomId}/players`);
+const chatRef=ref(db,`rooms/${roomId}/chat`);
 
-/* UI */
-const chat=document.getElementById("chat");
-const rootEl=document.getElementById("rootWord");
-const toast=document.getElementById("toast");
+let name="",isHost=false,eliminated=false;
 
-function notify(msg, ok=true){
-  toast.className="";
-  toast.textContent=msg;
-  toast.classList.add("show",ok?"toast-ok":"toast-bad");
-  setTimeout(()=>toast.classList.remove("show"),1200);
-}
-function add(text, cls){
+/* ===== UI ===== */
+function add(text,cls){
   const d=document.createElement("div");
   d.className="msg "+cls;
   d.textContent=text;
@@ -153,113 +144,76 @@ function add(text, cls){
   chat.scrollTop=chat.scrollHeight;
 }
 
-/* ENTER */
-window.enter = async ()=>{
+/* ===== ENTER ===== */
+window.enter=async()=>{
   name=nameInput.value.trim();
   if(!name) return;
-
-  isHost = hostInput.value.trim()===HOST_CODE;
-  if(isHost) document.getElementById("resetGame").classList.remove("hidden");
-
-  await set(ref(db,`rooms/${roomId}/players/${name}`),{
-    alive:true, score:0
-  });
+  localStorage.setItem("noitu_name",name);
+  isHost=hostInput.value.trim()===HOST_CODE;
 
   login.classList.add("hidden");
   room.classList.remove("hidden");
 
-  const s=await get(stateRef);
-  if(!s.exists()){
-    const roots=["tổ","con","ma","quốc","hồn"];
-    const root=roots[Math.floor(Math.random()*roots.length)];
-    await set(stateRef,{root,status:"playing"});
-    add("🤖 Bắt đầu với: "+root,"system");
-    rootEl.textContent="Gốc: "+root;
+  /* PLAYER: chỉ set nếu chưa tồn tại */
+  const pSnap=await get(ref(db,`rooms/${roomId}/players/${name}`));
+  if(!pSnap.exists()){
+    await set(ref(db,`rooms/${roomId}/players/${name}`),{
+      alive:true,score:0
+    });
+  }
+
+  const sSnap=await get(stateRef);
+  if(!sSnap.exists()){
+    if(isHost){
+      modePopup.classList.remove("hidden");
+    }else{
+      rootWord.textContent="⏳ Chờ host bắt đầu...";
+    }
   }else{
-    rootEl.textContent="Gốc: "+s.val().root;
+    rootWord.textContent="Gốc: "+sSnap.val().root;
   }
 };
 
-/* LISTEN CHAT */
-onChildAdded(chatRef,s=>{
-  const d=s.val();
-  add(d.text,d.cls);
-});
-
-/* COPY LINK */
-copyLink.onclick=()=>{
-  navigator.clipboard.writeText(
-    location.origin+location.pathname+"?room="+roomId
-  );
-  notify("Đã copy link");
-};
-
-/* RESET GAME – HOST ONLY */
-resetGame.onclick=async()=>{
+/* ===== START GAME (HOST ONLY) ===== */
+window.startGame=async(mode)=>{
   if(!isHost) return;
-  await set(ref(db,`rooms/${roomId}`),null);
-  location.reload();
+  await set(stateRef,{
+    root:"tổ",
+    mode,
+    status:"playing"
+  });
+  modePopup.classList.add("hidden");
 };
 
-/* CHECK WINNER */
-async function checkWinner(){
-  const snap=await get(playersRef);
-  if(!snap.exists()) return;
-  const ps=snap.val();
-  const alive=Object.keys(ps).filter(p=>ps[p].alive);
-  if(alive.length===1){
-    const w=alive[0];
-    push(chatRef,{text:`🏆 ${w} chiến thắng!`,cls:"system"});
-    showBXH();
-    await update(stateRef,{status:"ended",winner:w});
-  }
-}
+/* ===== CHAT ===== */
+onChildAdded(chatRef,s=>add(s.val().text,s.val().cls));
 
-/* BXH */
-async function showBXH(){
-  const snap=await get(playersRef);
-  if(!snap.exists()) return;
-  const arr=Object.entries(snap.val())
-    .map(([n,v])=>({n,score:v.score||0}))
-    .sort((a,b)=>b.score-a.score);
-
-  push(chatRef,{
-    text:"📊 BXH: "+arr.map(
-      (p,i)=>`${i+1}.${p.n}(${p.score})`
-    ).join(" | "),
-    cls:"bxh"
-  });
-}
-
-/* SEND */
-window.send = async ()=>{
-  if(eliminated) return notify("Bạn đã bị loại",false);
-
+/* ===== SEND ===== */
+window.send=async()=>{
+  if(eliminated) return;
   const val=text.value.trim().toLowerCase();
   if(!val) return;
   text.value="";
 
   const st=(await get(stateRef)).val();
-  if(st.status==="ended") return notify("Game đã kết thúc",false);
+  if(!st||st.status!=="playing") return;
 
-  const parts=val.split(/\s+/);
-  if(parts.length<2||parts[0]!==st.root){
+  if(!val.startsWith(st.root+" ")){
     eliminated=true;
     await update(ref(db,`rooms/${roomId}/players/${name}`),{alive:false});
-    push(chatRef,{text:`❌ ${name} sai và bị loại`,cls:"wrong"});
-    await checkWinner();
+    push(chatRef,{text:`❌ ${name} bị loại`,cls:"wrong"});
     return;
   }
 
-  await update(ref(db,`rooms/${roomId}/players/${name}`),{
-    score: (await get(ref(db,`rooms/${roomId}/players/${name}/score`))).val()+1
-  });
-
-  const next=parts[parts.length-1];
+  const next=val.split(" ").pop();
   await update(stateRef,{root:next});
   push(chatRef,{text:`✅ ${name}: ${val}`,cls:"correct"});
-  rootEl.textContent="Gốc: "+next;
-  await checkWinner();
+};
+
+window.copyLink=()=>{
+  navigator.clipboard.writeText(
+    location.origin+location.pathname+"?room="+roomId
+  );
 };
 </script>
 
