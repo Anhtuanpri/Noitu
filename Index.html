@@ -1,91 +1,119 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 – Mobile Stable Final</title>
+<title>Run 3 Mobile Controls</title>
 
-<meta name="viewport"
-      content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-<link rel="shortcut icon"
-      href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/favicon.png">
-
+<link rel="shortcut icon" href="./favicon.png">
 <script src="https://cdn.jsdelivr.net/gh/cooldude2349/bugfixes@main/Run3beta.js"></script>
 
 <style>
 html,body{
-    margin:0;
-    padding:0;
-    height:100%;
-    overflow:hidden;
-    background:#000;
+    margin:0;padding:0;height:100%;
+    overflow:hidden;background:#000;
+    touch-action:none;
 }
 #openfl-content{
-    width:100%;
-    height:100%;
+    width:100%;height:100%;
 }
+
+/* ==== MOBILE BUTTONS ==== */
+.control{
+    position:fixed;
+    bottom:20px;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.2);
+    border:2px solid rgba(255,255,255,0.5);
+    color:white;
+    font-size:28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    user-select:none;
+}
+#leftBtn{ left:20px; }
+#rightBtn{ right:20px; }
+
 </style>
 </head>
 
 <body>
 <div id="openfl-content"></div>
 
-<script>
-lime.embed("Run3", "openfl-content", 800, 600, {});
+<!-- Buttons -->
+<div id="leftBtn" class="control">⟲</div>
+<div id="rightBtn" class="control">⟳</div>
 
-/* ===== KEY ===== */
+<script>
+lime.embed("Run3","openfl-content",800,600,{});
+
+/* ===== KEY EMULATOR ===== */
 function key(type, code, kc){
     document.dispatchEvent(new KeyboardEvent(type,{
-        code: code,
-        key: code==="Space" ? " " : code,
-        keyCode: kc,
-        which: kc,
+        code:code,
+        key:code==="Space"?" ":code,
+        keyCode:kc,
+        which:kc,
         bubbles:true
     }));
 }
 
-/* ===== TAP & DOUBLE TAP ===== */
-let lastTap = 0;
+/* ===== JUMP (TAP / HOLD) ===== */
+let jumping=false;
 
-document.addEventListener("touchstart", e=>{
-    e.preventDefault();
-
-    const now = Date.now();
-    const delta = now - lastTap;
-
-    // single tap = nhảy ngắn
-    if(delta > 300){
-        key("keydown","Space",32);
-        setTimeout(()=>key("keyup","Space",32),120);
-    }
-    // double tap = nhảy xa
-    else{
-        key("keydown","Space",32);
-        setTimeout(()=>key("keyup","Space",32),260);
-    }
-
-    lastTap = now;
+document.addEventListener("touchstart",e=>{
+    if(e.target.classList.contains("control")) return;
+    jumping=true;
+    key("keydown","Space",32);
 },{passive:false});
 
-/* ===== ROTATE: TAP EDGE ===== */
-document.addEventListener("touchstart", e=>{
-    const x = e.touches[0].clientX;
-    const w = window.innerWidth;
-
-    // trái màn hình
-    if(x < w * 0.2){
-        key("keydown","ArrowLeft",37);
-        setTimeout(()=>key("keyup","ArrowLeft",37),80);
-    }
-    // phải màn hình
-    else if(x > w * 0.8){
-        key("keydown","ArrowRight",39);
-        setTimeout(()=>key("keyup","ArrowRight",39),80);
+document.addEventListener("touchend",e=>{
+    if(jumping){
+        key("keyup","Space",32);
+        jumping=false;
     }
 },{passive:false});
+
+/* ===== ROTATE BUTTONS ===== */
+function rotateLeft(){
+    key("keydown","ArrowLeft",37);
+    setTimeout(()=>key("keyup","ArrowLeft",37),80);
+}
+function rotateRight(){
+    key("keydown","ArrowRight",39);
+    setTimeout(()=>key("keyup","ArrowRight",39),80);
+}
+
+leftBtn.addEventListener("touchstart",e=>{
+    e.preventDefault(); rotateLeft();
+},{passive:false});
+
+rightBtn.addEventListener("touchstart",e=>{
+    e.preventDefault(); rotateRight();
+},{passive:false});
+
+/* ===== HOLD + SWIPE (OPTIONAL) ===== */
+let startX=null;
+
+document.addEventListener("touchstart",e=>{
+    startX=e.touches[0].clientX;
+},{passive:false});
+
+document.addEventListener("touchmove",e=>{
+    if(!jumping || startX===null) return;
+    let dx=e.touches[0].clientX-startX;
+    if(dx>60){ rotateRight(); startX=null; }
+    if(dx<-60){ rotateLeft(); startX=null; }
+},{passive:false});
+
+/* block scroll */
+document.body.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
 </script>
-
 </body>
 </html>
