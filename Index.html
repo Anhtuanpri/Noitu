@@ -38,7 +38,7 @@ body{
 }
 .chat{flex:1;overflow:auto;padding:12px}
 .msg{margin:6px 0;padding:10px 14px;border-radius:14px;max-width:90%}
-.system{background:#1e293b;color:#93c5fd}
+.system{background:#1e293b;color:#93c5fd;white-space:pre-line}
 .correct{background:#052e16;color:#4ade80}
 .wrong{background:#450a0a;color:#f87171}
 .input-row{
@@ -94,10 +94,10 @@ button.send{
 <div id="toast"></div>
 
 <script type="module">
-/* ========= GPT API ========= */
+/* ================= GPT API ================= */
 const OPENAI_API_KEY = "sk-XXXXXXXXXXXXXXXXXXXXXXXX";
 
-/* ========= FIREBASE ========= */
+/* ================= FIREBASE ================= */
 import { initializeApp } from
   "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import {
@@ -123,12 +123,14 @@ const chatRef    = ref(db,`rooms/${roomId}/chat`);
 const playersRef = ref(db,`rooms/${roomId}/players`);
 const adminRef   = ref(db,`rooms/${roomId}/admin`);
 
+/* ================= STATE LOCAL ================= */
 let name = "";
 let eliminated = false;
 let mode = "list";
 let WORDS = [];
+let gameOver = false;
 
-/* UI helpers */
+/* ================= UI ================= */
 const chat = document.getElementById("chat");
 const toast = document.getElementById("toast");
 const rootEl = document.getElementById("rootWord");
@@ -146,16 +148,39 @@ function add(text,cls){
   chat.scrollTop=chat.scrollHeight;
 }
 
-/* load words */
+/* ================= WORD LIST ================= */
 async function loadWords(){
   const r=await fetch("words.txt");
   WORDS=(await r.text()).split("\n").map(w=>w.trim()).filter(Boolean);
 }
 
-/* ENTER */
+/* ================= AI RA ĐỀ (TỪ GỐC) ================= */
+async function aiGenerateRoot(){
+  const r=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+OPENAI_API_KEY
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {role:"system",content:"Bạn tạo đề nối từ ghép tiếng Việt."},
+        {role:"user",content:"Cho 1 từ gốc (1 từ đơn, phổ biến, phù hợp nối từ ghép). Trả JSON {\"root\":\"từ\"}."}
+      ],
+      temperature:0.7,
+      max_tokens:40
+    })
+  });
+  const j=await r.json();
+  return JSON.parse(j.choices[0].message.content).root;
+}
+
+/* ================= ENTER ================= */
 window.enter = async ()=>{
   name = nameInput.value.trim();
   if(!name) return;
+
   localStorage.setItem("noitu_name",name);
   await loadWords();
 
@@ -163,11 +188,10 @@ window.enter = async ()=>{
   room.classList.remove("hidden");
 
   /* register player */
-  const pSnap = await get(ref(db,`rooms/${roomId}/players/${name}`));
+  const pRef = ref(db,`rooms/${roomId}/players/${name}`);
+  const pSnap = await get(pRef);
   if(!pSnap.exists()){
-    await set(ref(db,`rooms/${roomId}/players/${name}`),{
-      alive:true, score:0
-    });
+    await set(pRef,{ alive:true, score:0 });
   }
 
   /* admin */
@@ -180,25 +204,24 @@ window.enter = async ()=>{
   /* state */
   const sSnap = await get(stateRef);
   if(!sSnap.exists()){
-    const root = WORDS[Math.floor(Math.random()*WORDS.length)].split(" ")[0];
-    await set(stateRef,{root});
-    add("🤖 Bắt đầu với: "+root,"system");
+    const root = await aiGenerateRoot(); // ⭐ AI RA ĐỀ
+    await set(stateRef,{ root });
+    add("🤖 AI ra đề: "+root,"system");
     rootEl.textContent="Gốc: "+root;
   }else{
     rootEl.textContent="Gốc: "+sSnap.val().root;
   }
 };
 
-/* listen chat */
+/* ================= CHAT LISTEN ================= */
 onChildAdded(chatRef,s=>add(s.val().text,s.val().cls));
 
-/* list check */
+/* ================= CHECKERS ================= */
 function checkByList(root,word){
   return WORDS.includes(word) && word.startsWith(root+" ")
     ? word.split(" ").pop() : null;
 }
 
-/* gpt check */
 async function checkByGPT(root,word){
   const r=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
@@ -210,36 +233,71 @@ async function checkByGPT(root,word){
       model:"gpt-4o-mini",
       messages:[
         {role:"system",content:"Bạn là trọng tài nối từ ghép tiếng Việt."},
-        {role:"user",content:`Từ gốc "${root}", từ "${word}". Trả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}`}
+        {role:"user",content:
+          `Từ gốc "${root}", từ "${word}". Trả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}` }
       ],
-      temperature:0,max_tokens:60
+      temperature:0,
+      max_tokens:60
     })
   });
   return JSON.parse((await r.json()).choices[0].message.content);
 }
 
-/* SEND */
+/* ================= CHECK END GAME ================= */
+async function checkGameEnd(){
+  if(gameOver) return;
+
+  const snap = await get(playersRef);
+  if(!snap.exists()) return;
+
+  const players = snap.val();
+  const alive = Object.entries(players).filter(([_,v])=>v.alive);
+
+  if(alive.length !== 1) return;
+
+  gameOver = true;
+  const winner = alive[0][0];
+
+  const ranking = Object.entries(players)
+    .sort((a,b)=>(b[1].score||0)-(a[1].score||0))
+    .map(([n,v],i)=>`${i+1}. ${n} (${v.score||0})`)
+    .join("\n");
+
+  push(chatRef,{
+    text:`🏆 CHIẾN THẮNG: ${winner}\n\n📊 BẢNG XẾP HẠNG:\n${ranking}`,
+    cls:"system"
+  });
+
+  notify(`${winner} thắng cuộc!`,true);
+}
+
+/* ================= SEND ================= */
 window.send = async ()=>{
-  if(eliminated){notify("Bạn đã bị loại",false);return;}
+  if(eliminated || gameOver){
+    notify("Không thể gửi",false);
+    return;
+  }
+
   const val=text.value.trim().toLowerCase();
   if(!val) return;
   text.value="";
 
-  /* commands */
-  if(val==="/start"){mode="list";notify("Dùng LIST");return;}
-  if(val==="/bot"){mode="bot";notify("Dùng GPT");return;}
+  /* COMMANDS */
+  if(val==="/start"){ mode="list"; notify("Dùng LIST"); return; }
+  if(val==="/bot"){ mode="bot"; notify("Dùng GPT"); return; }
 
   if(val==="/reset"){
     const admin=(await get(adminRef)).val();
-    if(name!==admin){notify("Không phải admin",false);return;}
+    if(name!==admin){ notify("Không phải admin",false); return; }
+    gameOver=false;
     await set(stateRef,null);
     await set(playersRef,null);
     add("🔁 Game đã reset","system");
-    eliminated=false;
     return;
   }
 
   const st=(await get(stateRef)).val();
+
   try{
     let next;
     if(mode==="list"){
@@ -252,9 +310,10 @@ window.send = async ()=>{
     }
 
     await update(stateRef,{root:next});
-    await update(ref(db,`rooms/${roomId}/players/${name}`),{
-      score: ( (await get(ref(db,`rooms/${roomId}/players/${name}/score`))).val() || 0 ) + 1
-    });
+    const scoreRef=ref(db,`rooms/${roomId}/players/${name}/score`);
+    const cur=(await get(scoreRef)).val()||0;
+    await set(scoreRef,cur+1);
+
     push(chatRef,{text:`✅ ${name}: ${val}`,cls:"correct"});
     rootEl.textContent="Gốc: "+next;
 
@@ -264,19 +323,9 @@ window.send = async ()=>{
     push(chatRef,{text:`❌ ${name} bị loại`,cls:"wrong"});
   }
 
-  /* check winner */
-  const pSnap=await get(playersRef);
-  const arr=Object.entries(pSnap.val()||{});
-  const alive=arr.filter(([_,v])=>v.alive);
-  if(alive.length===1){
-    const rank=arr.sort((a,b)=>(b[1].score||0)-(a[1].score||0))
-      .map(([n,v],i)=>`${i+1}. ${n} (${v.score||0})`).join("\n");
-    push(chatRef,{
-      text:`🏆 THẮNG: ${alive[0][0]}\n📊 BXH:\n${rank}`,
-      cls:"system"
-    });
-  }
+  await checkGameEnd(); // ⭐ FIX QUYẾT ĐỊNH
 };
 </script>
+
 </body>
 </html>
