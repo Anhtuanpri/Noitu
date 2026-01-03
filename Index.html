@@ -3,7 +3,7 @@
 <head>
 <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 – Custom Avatar</title>
+<title>Run 3 – Video Background FIXED</title>
 
 <meta name="viewport"
       content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
@@ -14,33 +14,34 @@
 
 <style>
 /* ===== RESET ===== */
-html,body{
+html, body {
     margin:0;
     padding:0;
+    width:100%;
     height:100%;
     overflow:hidden;
-    background:#000;
+    background:transparent !important;
     touch-action:none;
 }
 
-/* ===== VIDEO BACKGROUND ===== */
+/* ===== VIDEO BACKGROUND (QUAN TRỌNG) ===== */
 #bg-video{
     position:fixed;
     inset:0;
     width:100%;
     height:100%;
     object-fit:cover;
-    z-index:-3;
+    z-index:0;                 /* KHÔNG ÂM */
     pointer-events:none;
-    opacity:0.35;
+    opacity:0.45;
 }
 
 /* ===== GAME CANVAS ===== */
 #openfl-content{
+    position:relative;
     width:100%;
     height:100%;
-    background:transparent;
-    position:relative;
+    background:transparent !important;  /* CỐT LÕI */
     z-index:1;
 }
 
@@ -64,11 +65,11 @@ html,body{
 #leftBtn{ left:20px; }
 #rightBtn{ right:20px; }
 
-/* ===== CHE GAMES235 + AVATAR ===== */
+/* ===== AVATAR CHE GAMES235 ===== */
 #custom-avatar{
     position:fixed;
     right:24px;
-    bottom:120px;   /* đúng vị trí More games */
+    bottom:120px;
     width:120px;
     z-index:10000;
     pointer-events:none;
@@ -76,24 +77,24 @@ html,body{
 #custom-avatar img{
     width:100%;
     height:auto;
-    filter: drop-shadow(0 0 10px rgba(0,0,0,0.7));
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===== NỀN VIDEO (CÓ THỂ BỎ) ===== -->
-<video id="bg-video" autoplay muted loop playsinline>
+<!-- ===== VIDEO NỀN ===== -->
+<video id="bg-video" muted loop playsinline>
     <source src="space.mp4" type="video/mp4">
 </video>
 
 <!-- ===== GAME ===== -->
 <div id="openfl-content"></div>
 
-<!-- ===== AVATAR CHE QUẢNG CÁO ===== -->
+<!-- ===== AVATAR ===== -->
 <div id="custom-avatar">
-    <img src="me.png" alt="Me">
+    <img src="me.png" alt="me">
 </div>
 
 <!-- ===== CONTROLS ===== -->
@@ -101,6 +102,14 @@ html,body{
 <div id="rightBtn" class="control">⟳</div>
 
 <script>
+/* ===== FORCE VIDEO PLAY (MOBILE FIX) ===== */
+const bgVideo = document.getElementById("bg-video");
+bgVideo.play().catch(()=>{
+    document.addEventListener("touchstart",()=>{
+        bgVideo.play();
+    },{once:true});
+});
+
 /* ===== EMBED GAME ===== */
 lime.embed("Run3","openfl-content",800,600,{});
 
@@ -124,7 +133,7 @@ function keyUp(code, kc){
     }));
 }
 
-/* ===== JUMP (TOUCH SCREEN, TRỪ NÚT) ===== */
+/* ===== JUMP (CHẠM MÀN, TRỪ NÚT) ===== */
 let jumping=false;
 document.addEventListener("touchstart",e=>{
     if(e.target.classList.contains("control")) return;
