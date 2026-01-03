@@ -8,23 +8,19 @@
 <style>
 *{box-sizing:border-box}
 body{
-  margin:0;
-  font-family:system-ui;
+  margin:0;font-family:system-ui;
   background:linear-gradient(135deg,#020617,#120029);
   color:#e5e7eb;
 }
 .center{display:flex;align-items:center;justify-content:center;height:100vh}
 .card{
-  width:360px;padding:24px;border-radius:18px;
+  width:380px;padding:24px;border-radius:18px;
   background:rgba(255,255,255,.06);
   backdrop-filter:blur(14px);
   box-shadow:0 0 30px rgba(139,92,246,.4);
   text-align:center;
 }
-.room{
-  max-width:600px;margin:0 auto;height:100vh;
-  display:flex;flex-direction:column;
-}
+.room{max-width:650px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
 .header{
   padding:12px;border-bottom:1px solid #334155;
   display:flex;justify-content:space-between;align-items:center;
@@ -33,32 +29,24 @@ body{
 .header button{
   background:linear-gradient(135deg,#22d3ee,#a855f7);
   border:none;border-radius:12px;
-  padding:6px 10px;font-weight:700;
-  cursor:pointer;
+  padding:6px 12px;font-weight:700;cursor:pointer;
 }
 .chat{flex:1;overflow:auto;padding:12px}
-.msg{margin:6px 0;padding:10px 14px;border-radius:14px;max-width:90%}
-.system{background:#1e293b;color:#93c5fd;white-space:pre-line}
+.msg{margin:6px 0;padding:10px 14px;border-radius:14px;max-width:90%;white-space:pre-line}
+.system{background:#1e293b;color:#93c5fd}
 .correct{background:#052e16;color:#4ade80}
 .wrong{background:#450a0a;color:#f87171}
+.admin{background:#312e81;color:#c7d2fe}
 .input-row{
   display:flex;gap:8px;padding:10px;
   border-top:1px solid #334155;
 }
 input{flex:1;padding:12px;border:none;border-radius:10px}
 button.send{
-  padding:12px 16px;border:none;border-radius:10px;
+  padding:12px 18px;border:none;border-radius:10px;
   background:#7c3aed;color:#fff;font-weight:700;
 }
 .hidden{display:none}
-#toast{
-  position:fixed;top:20px;right:20px;
-  padding:10px 14px;border-radius:12px;
-  font-weight:700;opacity:0;transition:.25s;
-}
-#toast.show{opacity:1}
-.toast-ok{background:#052e16;color:#4ade80}
-.toast-bad{background:#450a0a;color:#f87171}
 </style>
 </head>
 
@@ -69,8 +57,10 @@ button.send{
   <div class="card">
     <h2>🔮 NỐI TỪ GHÉP AI</h2>
     <input id="nameInput" placeholder="Tên của bạn">
+    <input id="hostInput" placeholder="Mã host (nếu có)">
     <button onclick="enter()">Vào chơi</button>
     <p style="font-size:13px;color:#aaa">
+      Mã admin: <b>172727.7777</b> (tối đa 3)<br>
       /start list · /bot GPT · /reset (admin)
     </p>
   </div>
@@ -80,7 +70,7 @@ button.send{
 <div id="room" class="room hidden">
   <div class="header">
     <span>🤖 Trọng tài · <span id="rootWord"></span></span>
-    <button id="copyLink">🔗</button>
+    <button id="adminReset" class="hidden" onclick="adminReset()">RESET</button>
   </div>
 
   <div id="chat" class="chat"></div>
@@ -91,55 +81,46 @@ button.send{
   </div>
 </div>
 
-<div id="toast"></div>
-
 <script type="module">
-/* ================= GPT API ================= */
+/* ========== CONFIG ========== */
 const OPENAI_API_KEY = "sk-XXXXXXXXXXXXXXXXXXXXXXXX";
+const HOST_CODE = "172727.7777";
+const MAX_ADMINS = 3;
 
-/* ================= FIREBASE ================= */
+/* ========== FIREBASE ========== */
 import { initializeApp } from
-  "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+ "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import {
   getDatabase, ref, push, onChildAdded,
   set, get, update
 } from
-  "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+ "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
+  databaseURL: "https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "noitu-7dca6"
+});
+const db = getDatabase(app);
 
 const params = new URLSearchParams(location.search);
 const roomId = params.get("room") || "phong-chung";
 
-const app = initializeApp({
-  apiKey: "AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
-  authDomain: "noitu-7dca6.firebaseapp.com",
-  databaseURL: "https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "noitu-7dca6",
-  appId: "1:253854569418:web:105e8e3edfdd9baafff533"
-});
-const db = getDatabase(app);
+const stateRef  = ref(db,`rooms/${roomId}/state`);
+const chatRef   = ref(db,`rooms/${roomId}/chat`);
+const playersRef= ref(db,`rooms/${roomId}/players`);
+const adminsRef = ref(db,`rooms/${roomId}/admins`);
 
-const stateRef   = ref(db,`rooms/${roomId}/state`);
-const chatRef    = ref(db,`rooms/${roomId}/chat`);
-const playersRef = ref(db,`rooms/${roomId}/players`);
-const adminRef   = ref(db,`rooms/${roomId}/admin`);
+/* ========== LOCAL STATE ========== */
+let name="", isAdmin=false;
+let eliminated=false, gameOver=false, mode="list";
+let WORDS=[];
 
-/* ================= STATE LOCAL ================= */
-let name = "";
-let eliminated = false;
-let mode = "list";
-let WORDS = [];
-let gameOver = false;
+/* ========== UI ========== */
+const chat=document.getElementById("chat");
+const rootEl=document.getElementById("rootWord");
+const resetBtn=document.getElementById("adminReset");
 
-/* ================= UI ================= */
-const chat = document.getElementById("chat");
-const toast = document.getElementById("toast");
-const rootEl = document.getElementById("rootWord");
-
-function notify(msg,ok=true){
-  toast.textContent=msg;
-  toast.className="show "+(ok?"toast-ok":"toast-bad");
-  setTimeout(()=>toast.className="",1000);
-}
 function add(text,cls){
   const d=document.createElement("div");
   d.className="msg "+cls;
@@ -148,14 +129,14 @@ function add(text,cls){
   chat.scrollTop=chat.scrollHeight;
 }
 
-/* ================= WORD LIST ================= */
+/* ========== WORD LIST ========== */
 async function loadWords(){
   const r=await fetch("words.txt");
   WORDS=(await r.text()).split("\n").map(w=>w.trim()).filter(Boolean);
 }
 
-/* ================= AI RA ĐỀ (TỪ GỐC) ================= */
-async function aiGenerateRoot(){
+/* ========== AI RA ĐỀ ========== */
+async function aiRoot(){
   const r=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
     headers:{
@@ -165,20 +146,18 @@ async function aiGenerateRoot(){
     body:JSON.stringify({
       model:"gpt-4o-mini",
       messages:[
-        {role:"system",content:"Bạn tạo đề nối từ ghép tiếng Việt."},
-        {role:"user",content:"Cho 1 từ gốc (1 từ đơn, phổ biến, phù hợp nối từ ghép). Trả JSON {\"root\":\"từ\"}."}
+        {role:"system",content:"Tạo 1 từ gốc để chơi nối từ ghép tiếng Việt"},
+        {role:"user",content:"Trả JSON {\"root\":\"từ\"}"}
       ],
-      temperature:0.7,
       max_tokens:40
     })
   });
-  const j=await r.json();
-  return JSON.parse(j.choices[0].message.content).root;
+  return JSON.parse((await r.json()).choices[0].message.content).root;
 }
 
-/* ================= ENTER ================= */
+/* ========== ENTER ========== */
 window.enter = async ()=>{
-  name = nameInput.value.trim();
+  name=nameInput.value.trim();
   if(!name) return;
 
   localStorage.setItem("noitu_name",name);
@@ -188,41 +167,48 @@ window.enter = async ()=>{
   room.classList.remove("hidden");
 
   /* register player */
-  const pRef = ref(db,`rooms/${roomId}/players/${name}`);
-  const pSnap = await get(pRef);
-  if(!pSnap.exists()){
-    await set(pRef,{ alive:true, score:0 });
+  const pRef=ref(db,`rooms/${roomId}/players/${name}`);
+  if(!(await get(pRef)).exists()){
+    await set(pRef,{alive:true,score:0});
   }
 
-  /* admin */
-  const aSnap = await get(adminRef);
-  if(!aSnap.exists()){
-    await set(adminRef,name);
-    add(`👑 ${name} là quản trị`, "system");
+  /* ADMIN CHECK */
+  const adminsSnap=await get(adminsRef);
+  const admins=adminsSnap.val()||{};
+
+  if(hostInput.value.trim()===HOST_CODE && Object.keys(admins).length<MAX_ADMINS){
+    await update(adminsRef,{[name]:true});
+    isAdmin=true;
+    resetBtn.classList.remove("hidden");
+    add(`👑 ${name} là admin`, "system");
+  }else if(admins[name]){
+    isAdmin=true;
+    resetBtn.classList.remove("hidden");
   }
 
-  /* state */
-  const sSnap = await get(stateRef);
+  /* STATE */
+  const sSnap=await get(stateRef);
   if(!sSnap.exists()){
-    const root = await aiGenerateRoot(); // ⭐ AI RA ĐỀ
-    await set(stateRef,{ root });
-    add("🤖 AI ra đề: "+root,"system");
+    const root=await aiRoot();
+    await set(stateRef,{root});
     rootEl.textContent="Gốc: "+root;
+    add("🤖 AI ra đề: "+root,"system");
   }else{
     rootEl.textContent="Gốc: "+sSnap.val().root;
   }
 };
 
-/* ================= CHAT LISTEN ================= */
-onChildAdded(chatRef,s=>add(s.val().text,s.val().cls));
+/* ========== CHAT LISTEN ========== */
+onChildAdded(chatRef,s=>{
+  const d=s.val();
+  add(d.text,d.cls);
+});
 
-/* ================= CHECKERS ================= */
-function checkByList(root,word){
-  return WORDS.includes(word) && word.startsWith(root+" ")
-    ? word.split(" ").pop() : null;
+/* ========== CHECKERS ========== */
+function checkByList(root,w){
+  return WORDS.includes(w)&&w.startsWith(root+" ") ? w.split(" ").pop() : null;
 }
-
-async function checkByGPT(root,word){
+async function checkByGPT(root,w){
   const r=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
     headers:{
@@ -232,69 +218,53 @@ async function checkByGPT(root,word){
     body:JSON.stringify({
       model:"gpt-4o-mini",
       messages:[
-        {role:"system",content:"Bạn là trọng tài nối từ ghép tiếng Việt."},
-        {role:"user",content:
-          `Từ gốc "${root}", từ "${word}". Trả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}` }
+        {role:"system",content:"Chấm nối từ ghép tiếng Việt"},
+        {role:"user",content:`Gốc ${root}, từ ${w}. Trả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}`}
       ],
-      temperature:0,
-      max_tokens:60
+      max_tokens:50
     })
   });
   return JSON.parse((await r.json()).choices[0].message.content);
 }
 
-/* ================= CHECK END GAME ================= */
-async function checkGameEnd(){
+/* ========== END GAME ========== */
+async function checkEnd(){
   if(gameOver) return;
+  const ps=(await get(playersRef)).val()||{};
+  const alive=Object.entries(ps).filter(([_,v])=>v.alive);
+  if(alive.length!==1) return;
 
-  const snap = await get(playersRef);
-  if(!snap.exists()) return;
-
-  const players = snap.val();
-  const alive = Object.entries(players).filter(([_,v])=>v.alive);
-
-  if(alive.length !== 1) return;
-
-  gameOver = true;
-  const winner = alive[0][0];
-
-  const ranking = Object.entries(players)
+  gameOver=true;
+  const rank=Object.entries(ps)
     .sort((a,b)=>(b[1].score||0)-(a[1].score||0))
-    .map(([n,v],i)=>`${i+1}. ${n} (${v.score||0})`)
-    .join("\n");
+    .map(([n,v],i)=>`${i+1}. ${n} (${v.score||0})`).join("\n");
 
   push(chatRef,{
-    text:`🏆 CHIẾN THẮNG: ${winner}\n\n📊 BẢNG XẾP HẠNG:\n${ranking}`,
+    text:`🏆 ${alive[0][0]} thắng!\n📊 BXH:\n${rank}`,
     cls:"system"
   });
-
-  notify(`${winner} thắng cuộc!`,true);
 }
 
-/* ================= SEND ================= */
+/* ========== SEND ========== */
 window.send = async ()=>{
-  if(eliminated || gameOver){
-    notify("Không thể gửi",false);
-    return;
-  }
-
   const val=text.value.trim().toLowerCase();
   if(!val) return;
   text.value="";
 
-  /* COMMANDS */
-  if(val==="/start"){ mode="list"; notify("Dùng LIST"); return; }
-  if(val==="/bot"){ mode="bot"; notify("Dùng GPT"); return; }
+  /* ADMIN luôn chat được */
+  if(!isAdmin && (eliminated||gameOver)) return;
 
   if(val==="/reset"){
-    const admin=(await get(adminRef)).val();
-    if(name!==admin){ notify("Không phải admin",false); return; }
-    gameOver=false;
+    if(!isAdmin) return;
+    eliminated=false; gameOver=false;
     await set(stateRef,null);
     await set(playersRef,null);
-    add("🔁 Game đã reset","system");
+    add("🔁 Admin reset game","system");
     return;
   }
+
+  if(val==="/start"){mode="list";return;}
+  if(val==="/bot"){mode="bot";return;}
 
   const st=(await get(stateRef)).val();
 
@@ -310,21 +280,26 @@ window.send = async ()=>{
     }
 
     await update(stateRef,{root:next});
-    const scoreRef=ref(db,`rooms/${roomId}/players/${name}/score`);
-    const cur=(await get(scoreRef)).val()||0;
-    await set(scoreRef,cur+1);
-
+    if(!isAdmin){
+      const sRef=ref(db,`rooms/${roomId}/players/${name}/score`);
+      await set(sRef,((await get(sRef)).val()||0)+1);
+    }
     push(chatRef,{text:`✅ ${name}: ${val}`,cls:"correct"});
-    rootEl.textContent="Gốc: "+next;
 
   }catch{
-    eliminated=true;
-    await update(ref(db,`rooms/${roomId}/players/${name}`),{alive:false});
-    push(chatRef,{text:`❌ ${name} bị loại`,cls:"wrong"});
+    if(isAdmin){
+      push(chatRef,{text:`⚠️ ${name} (admin) sai`,cls:"admin"});
+    }else{
+      eliminated=true;
+      await update(ref(db,`rooms/${roomId}/players/${name}`),{alive:false});
+      push(chatRef,{text:`❌ ${name} bị loại`,cls:"wrong"});
+    }
   }
 
-  await checkGameEnd(); // ⭐ FIX QUYẾT ĐỊNH
+  await checkEnd();
 };
+
+window.adminReset=()=>send("/reset");
 </script>
 
 </body>
