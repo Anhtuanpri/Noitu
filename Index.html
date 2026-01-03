@@ -1,1399 +1,756 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>NỐI TỪ GHÉP TIẾNG VIỆT – Realtime</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Neon + Glassmorphism Style [web:7][web:13][web:19] -->
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #f8fafc;
-    }
-    body {
-      min-height: 100vh;
-      background: radial-gradient(circle at top, #22d3ee 0, #020617 40%, #0b1120 100%);
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      padding: 20px;
-    }
-    .app {
-      width: 100%;
-      max-width: 1200px;
-      margin: auto;
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
-      gap: 20px;
-    }
-    @media (max-width: 900px) {
-      .app {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-    .glass {
-      background: rgba(15, 23, 42, 0.65);
-      border-radius: 20px;
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      box-shadow:
-        0 0 0 1px rgba(15, 23, 42, 0.8),
-        0 18px 45px rgba(15, 23, 42, 0.9),
-        0 0 30px rgba(56, 189, 248, 0.3);
-      backdrop-filter: blur(22px) saturate(160%);
-      padding: 18px 20px;
-      position: relative;
-      overflow: hidden;
-    }
-    .glass::before {
-      content: "";
-      position: absolute;
-      inset: -40%;
-      background:
-        radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.15), transparent 55%),
-        radial-gradient(circle at 100% 100%, rgba(147, 51, 234, 0.15), transparent 50%);
-      opacity: 0.75;
-      pointer-events: none;
-      z-index: -1;
-    }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #f9fafb;
-      text-shadow: 0 0 18px rgba(56, 189, 248, 0.9);
-    }
-    h2 {
-      font-size: 16px;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #a5b4fc;
-    }
-    .subtitle {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-bottom: 12px;
-    }
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .field {
-      flex: 1 1 120px;
-      position: relative;
-    }
-    label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: #9ca3af;
-      margin-bottom: 4px;
-      display: block;
-    }
-    input, textarea, select {
-      width: 100%;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 0.7);
-      padding: 8px 12px;
-      font-size: 13px;
-      outline: none;
-      transition: border 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, transform 0.12s ease;
-    }
-    input:focus, textarea:focus, select:focus {
-      border-color: #22d3ee;
-      box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.6), 0 0 20px rgba(34, 211, 238, 0.5);
-      background: rgba(15, 23, 42, 0.9);
-      transform: translateY(-1px);
-    }
-    textarea {
-      border-radius: 16px;
-      resize: none;
-      min-height: 72px;
-    }
-    button {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      padding: 8px 14px;
-      font-size: 13px;
-      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.4), rgba(59, 130, 246, 0.4));
-      color: #f9fafb;
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.18s ease, border-color 0.18s ease;
-    }
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow:
-        0 0 0 1px rgba(56, 189, 248, 0.8),
-        0 0 24px rgba(56, 189, 248, 0.9);
-      border-color: rgba(248, 250, 252, 0.9);
-    }
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nối Từ Ghép AI - Glass UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-blue: #0ea5e9;
+            --neon-green: #22c55e;
+            --neon-red: #ef4444;
+            --text-color: #e2e8f0;
+        }
 
-    .btn-secondary {
-      background: rgba(15, 23, 42, 0.9);
-      border-color: rgba(148, 163, 184, 0.8);
-    }
-    .btn-danger {
-      background: radial-gradient(circle at 0 0, rgba(248, 113, 113, 0.85), rgba(190, 24, 93, 0.9));
-      border-color: rgba(254, 202, 202, 0.9);
-      box-shadow:
-        0 0 16px rgba(248, 113, 113, 0.6),
-        0 0 40px rgba(190, 24, 93, 0.5);
-    }
-    .status-pill {
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: rgba(15, 23, 42, 0.8);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-    }
-    .status-online {
-      background: #22c55e;
-      box-shadow: 0 0 12px rgba(34, 197, 94, 0.9);
-    }
-    .status-offline {
-      background: #6b7280;
-    }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    .tag {
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      border: 1px solid rgba(148, 163, 184, 0.8);
-      background: rgba(15, 23, 42, 0.9);
-      opacity: 0.8;
-    }
-    .tag-admin {
-      border-color: rgba(249, 115, 22, 0.9);
-      color: #fed7aa;
-      background: radial-gradient(circle at 0 0, rgba(249, 115, 22, 0.35), rgba(15, 23, 42, 0.95));
-      text-shadow: 0 0 12px rgba(249, 115, 22, 0.9);
-    }
-    .tag-system {
-      border-color: rgba(59, 130, 246, 0.9);
-      color: #bfdbfe;
-    }
-    .tag-bot-on {
-      border-color: rgba(34, 211, 238, 0.9);
-      color: #a5f3fc;
-    }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
 
-    .root-word {
-      font-size: 26px;
-      font-weight: 700;
-      margin: 4px 0 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #fefce8;
-      text-shadow:
-        0 0 12px rgba(250, 204, 21, 0.9),
-        0 0 28px rgba(59, 130, 246, 0.9);
-    }
+        /* Login Screen */
+        #login-screen {
+            position: absolute;
+            z-index: 100;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
 
-    .info-line {
-      font-size: 11px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
+        .glass-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
 
-    .pill {
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      opacity: 0.9;
-    }
-    .pill-correct {
-      border-color: rgba(52, 211, 153, 0.9);
-      color: #bbf7d0;
-    }
-    .pill-wrong {
-      border-color: rgba(248, 113, 113, 0.9);
-      color: #fecaca;
-    }
+        h1 { text-align: center; color: var(--neon-blue); text-shadow: 0 0 10px rgba(14, 165, 233, 0.5); margin-bottom: 1rem; }
+        
+        input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--neon-blue); box-shadow: 0 0 8px rgba(14, 165, 233, 0.3); }
 
-    .players-list {
-      margin-top: 12px;
-      max-height: 180px;
-      overflow: auto;
-      padding-right: 2px;
-    }
-    .player-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 8px;
-      border-radius: 999px;
-      margin-bottom: 4px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(55, 65, 81, 0.9);
-    }
-    .player-name {
-      font-size: 13px;
-    }
-    .player-name.admin {
-      color: #fed7aa;
-      text-shadow: 0 0 12px rgba(249, 115, 22, 0.9);
-    }
-    .player-meta {
-      font-size: 11px;
-      color: #9ca3af;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .badge-alive {
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      border: 1px solid rgba(34, 197, 94, 0.9);
-      color: #bbf7d0;
-      background: rgba(22, 163, 74, 0.3);
-    }
-    .badge-dead {
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      border: 1px solid rgba(248, 113, 113, 0.9);
-      color: #fecaca;
-      background: rgba(127, 29, 29, 0.6);
-    }
+        button {
+            background: var(--neon-blue);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { filter: brightness(1.2); }
+        button:disabled { background: gray; cursor: not-allowed; }
 
-    .chat-panel {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    .chat-log {
-      flex: 1;
-      margin-top: 8px;
-      border-radius: 16px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      padding: 8px 10px;
-      overflow-y: auto;
-      font-size: 12px;
-      max-height: 380px;
-    }
-    .chat-msg {
-      margin-bottom: 6px;
-      line-height: 1.25;
-      word-break: break-word;
-    }
-    .chat-author {
-      font-weight: 600;
-      margin-right: 6px;
-    }
-    .chat-author.admin {
-      color: #fdba74;
-    }
-    .chat-author.system {
-      color: #a5b4fc;
-    }
-    .chat-author.bot {
-      color: #a5f3fc;
-    }
-    .chat-text {
-      color: #e5e7eb;
-    }
-    .chat-text.error {
-      color: #fecaca;
-    }
-    .chat-text.ok {
-      color: #bbf7d0;
-    }
-    .chat-meta {
-      font-size: 10px;
-      color: #6b7280;
-      margin-left: 4px;
-    }
+        /* Game Layout */
+        #game-screen {
+            display: none; /* Hidden by default */
+            width: 95vw;
+            height: 90vh;
+            gap: 20px;
+            grid-template-columns: 250px 1fr;
+        }
 
-    .chat-input-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .chat-input-row input {
-      flex: 1;
-    }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-    .label-small {
-      font-size: 10px;
-      color: #9ca3af;
-    }
+        .main-chat {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
 
-    .gpt-status {
-      font-size: 11px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
+        /* Components */
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-    .scoreboard {
-      margin-top: 10px;
-      border-radius: 16px;
-      border: 1px solid rgba(234, 179, 8, 0.9);
-      background: radial-gradient(circle at 0 0, rgba(250, 204, 21, 0.35), rgba(15, 23, 42, 0.96));
-      padding: 10px 12px;
-      box-shadow:
-        0 0 20px rgba(250, 204, 21, 0.8),
-        0 0 40px rgba(59, 130, 246, 0.7);
-    }
-    .scoreboard-title {
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      color: #fef9c3;
-      margin-bottom: 6px;
-    }
-    .scoreboard-item {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      margin-bottom: 4px;
-      color: #fefce8;
-    }
-    .scoreboard-rank {
-      font-weight: 600;
-      margin-right: 6px;
-    }
+        .game-info {
+            text-align: center;
+        }
+        .current-word-box {
+            margin-top: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--neon-green);
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+        }
 
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.9);
-      background: rgba(15, 23, 42, 0.9);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-    }
-    .chip.on {
-      border-color: rgba(34, 211, 238, 0.9);
-      color: #a5f3fc;
-      box-shadow: 0 0 16px rgba(34, 211, 238, 0.8);
-    }
+        .player-list {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid var(--glass-border);
+            align-items: center;
+        }
+        .player-item.dead { color: var(--neon-red); text-decoration: line-through; opacity: 0.7; }
+        .player-item.admin-tag { border-left: 3px solid var(--neon-blue); padding-left: 5px; }
+        .score-badge { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
 
-    .hint {
-      font-size: 11px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
-    .notice {
-      font-size: 11px;
-      color: #facc15;
-      margin-top: 4px;
-    }
-    .error {
-      color: #fecaca;
-    }
-    .success {
-      color: #bbf7d0;
-    }
+        .chat-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
 
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.9);
-      border-radius: 999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(75, 85, 99, 0.95);
-    }
+        .message {
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    .room-id-display {
-      font-size: 12px;
-      color: #e5e7eb;
-    }
-    .room-id-display span {
-      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 13px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.9);
-      background: rgba(15, 23, 42, 0.9);
-    }
+        .msg-system { align-self: center; color: #94a3b8; font-style: italic; font-size: 0.85rem; }
+        .msg-correct { align-self: flex-start; background: rgba(34, 197, 94, 0.2); border: 1px solid var(--neon-green); }
+        .msg-wrong { align-self: flex-start; background: rgba(239, 68, 68, 0.2); border: 1px solid var(--neon-red); }
+        .msg-chat { align-self: flex-start; background: rgba(255, 255, 255, 0.1); }
+        .msg-mine { align-self: flex-end; background: rgba(14, 165, 233, 0.2); border: 1px solid var(--neon-blue); }
+        .msg-admin { border: 1px solid gold; color: gold; }
 
-    .bubble {
-      position: absolute;
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.5), transparent 60%);
-      opacity: 0.35;
-      filter: blur(8px);
-      z-index: -2;
-    }
-    .bubble.b1 {
-      top: -60px;
-      left: -40px;
-    }
-    .bubble.b2 {
-      bottom: -60px;
-      right: -50px;
-      background: radial-gradient(circle, rgba(147, 51, 234, 0.5), transparent 60%);
-    }
-  </style>
+        .input-area {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input { flex-grow: 1; }
+
+        #admin-controls {
+            display: none; /* Show only for admin */
+            margin-top: 10px;
+        }
+        #btn-reset { background: var(--neon-red); width: 100%; }
+
+        /* Leaderboard Modal */
+        #leaderboard {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.98);
+            border: 2px solid var(--neon-blue);
+            padding: 2rem;
+            border-radius: 16px;
+            z-index: 200;
+            text-align: center;
+            min-width: 300px;
+        }
+        .winner-name { font-size: 2rem; color: gold; margin: 10px 0; }
+
+        @media (max-width: 768px) {
+            #game-screen { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+            .sidebar { height: 150px; flex-shrink: 0; }
+            .card { border-radius: 0; border: none; border-bottom: 1px solid var(--glass-border); }
+        }
+    </style>
 </head>
 <body>
-  <div class="bubble b1"></div>
-  <div class="bubble b2"></div>
-  <div class="app">
-    <!-- LEFT: GAME PANEL -->
-    <div class="glass">
-      <h1>NỐI TỪ GHÉP TIẾNG VIỆT</h1>
-      <div class="subtitle">Client-only · Firebase Realtime · AI Host</div>
 
-      <!-- USER + ROOM SETUP -->
-      <div class="row">
-        <div class="field">
-          <label for="nameInput">Tên người chơi</label>
-          <input id="nameInput" type="text" placeholder="Nhập tên..." />
-          <div class="hint">Tên dùng làm khóa player, F5 không mất.</div>
+    <div id="login-screen">
+        <div class="glass-panel">
+            <h1>NỐI TỪ AI</h1>
+            <input type="text" id="inp-name" placeholder="Nhập tên của bạn (Bắt buộc)">
+            <input type="password" id="inp-admin" placeholder="Mã Admin (Nếu có)">
+            <input type="password" id="inp-key" placeholder="OpenAI API Key (Bắt buộc)">
+            <button id="btn-join">VÀO PHÒNG</button>
+            <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">F5 không mất dữ liệu. <br>Code by Senior Dev.</p>
         </div>
-        <div class="field">
-          <label for="roomInput">Mã phòng</label>
-          <input id="roomInput" type="text" placeholder="vd: phong1" />
-          <div class="hint">Mọi người cùng phòng để chơi chung.</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="field">
-          <label for="adminCodeInput">Mã admin (tuỳ chọn)</label>
-          <input id="adminCodeInput" type="password" placeholder="Nhập nếu bạn là admin" />
-          <div class="hint">Mã admin: 172727.7777 (tối đa 3 admin / phòng).</div>
-        </div>
-        <div class="field">
-          <label for="apiKeyInput">OpenAI API key</label>
-          <input id="apiKeyInput" type="password" placeholder="sk-..." />
-          <div class="hint">Nhập key để AI ra đề & chấm.</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <button id="enterBtn">Vào phòng</button>
-        <button id="leaveBtn" class="btn-secondary" style="display:none">Rời phòng</button>
-        <span id="connectionStatus" class="status-pill">
-          <span class="status-dot status-offline"></span>
-          <span>OFFLINE</span>
-        </span>
-      </div>
-
-      <div class="row" style="margin-top:4px">
-        <div class="room-id-display">
-          Phòng: <span id="roomIdText">Chưa vào</span>
-        </div>
-        <div id="selfInfo" class="player-meta">
-          <span>Score: <span id="selfScore">0</span></span>
-          <span>|</span>
-          <span>Trạng thái: <span id="selfAliveText">chưa vào</span></span>
-        </div>
-      </div>
-
-      <!-- ROOT WORD / GAME STATE -->
-      <div style="margin-top:16px">
-        <div class="row" style="align-items:flex-end">
-          <div style="flex:1">
-            <h2>Từ gốc hiện tại</h2>
-            <div id="rootWord" class="root-word">—</div>
-            <div class="info-line">
-              Hệ thống sẽ tự tạo từ gốc nếu phòng chưa có game (AI host).
-            </div>
-          </div>
-          <div style="text-align:right">
-            <button id="resetBtn" class="btn-danger" style="display:none">RESET GAME</button>
-            <div class="label-small" id="adminLabel" style="margin-top:6px; display:none">
-              Bạn là admin phòng này.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ANSWER INPUT -->
-      <div style="margin-top:16px">
-        <h2>Lượt chơi</h2>
-        <div class="row">
-          <div class="field">
-            <label for="answerInput">Từ ghép tiếp theo</label>
-            <input id="answerInput" type="text" placeholder="Nhập từ ghép tiếng Việt..." />
-            <div class="hint">Mọi câu trả lời đều gửi AI kiểm tra. Sai 1 lần sẽ bị loại & cấm chat (trừ admin).</div>
-          </div>
-          <button id="answerBtn">Gửi</button>
-        </div>
-        <div id="answerFeedback" class="info-line"></div>
-      </div>
-
-      <!-- PLAYERS -->
-      <div style="margin-top:18px">
-        <h2>Người chơi trong phòng</h2>
-        <div class="info-line">
-          Alive màu xanh, bị loại màu đỏ. Admin có màu riêng, luôn reset game được.
-        </div>
-        <div id="playersList" class="players-list"></div>
-      </div>
-
-      <!-- SCOREBOARD (END GAME) -->
-      <div id="scoreboard" class="scoreboard" style="display:none">
-        <div class="scoreboard-title">Bảng xếp hạng</div>
-        <div id="scoreboardBody"></div>
-        <div class="notice">Game đã kết thúc (chỉ còn 1 người alive). Admin quyết định khi nào reset.</div>
-      </div>
     </div>
 
-    <!-- RIGHT: CHAT + AI PANEL -->
-    <div class="glass chat-panel">
-      <h2>Chat realtime & điều khiển AI</h2>
-      <div class="row">
-        <span class="chip" id="botChip">
-          BOT: <span id="botStatusText">OFF</span>
-        </span>
-        <span class="tag tag-system">Lệnh: /bot, /botgpt, /reset</span>
-      </div>
-      <div class="gpt-status" id="gptStatus">
-        GPT đang tắt. Dùng /bot hoặc /botgpt trong chat để bật chấm điểm AI. /reset chỉ admin dùng được.
-      </div>
+    <div id="game-screen">
+        <div class="sidebar">
+            <div class="card game-info">
+                <span>TỪ KHÓA HIỆN TẠI</span>
+                <div id="current-root" class="current-word-box">...</div>
+                <div id="game-status" style="font-size: 0.8rem; margin-top: 5px; color: #94a3b8;">Đang chờ...</div>
+                
+                <div id="admin-controls">
+                    <button id="btn-reset">⚠️ RESET GAME (ADMIN)</button>
+                </div>
+            </div>
+            
+            <div class="card player-list">
+                <h4 style="margin-bottom: 10px; color: var(--neon-blue);">NGƯỜI CHƠI</h4>
+                <div id="list-container">
+                    </div>
+            </div>
+        </div>
 
-      <div id="chatLog" class="chat-log"></div>
-
-      <div class="chat-input-row">
-        <input id="chatInput" type="text" placeholder="Nhập chat hoặc lệnh (/bot, /botgpt, /reset)..." />
-        <button id="chatSendBtn">GỬI</button>
-      </div>
-      <div class="hint">
-        Người thường sai 1 lần sẽ bị loại và cấm chat. Admin có thể sai nhưng vẫn chat và reset game.
-      </div>
+        <div class="card main-chat">
+            <div id="chat-box" class="chat-area">
+                <div class="msg-system">Chào mừng đến với phòng chat...</div>
+            </div>
+            <div class="input-area">
+                <input type="text" id="inp-chat" placeholder="Nhập từ nối hoặc chat..." autocomplete="off">
+                <button id="btn-send">GỬI</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Firebase v10 CDN, modular API [web:2][web:11][web:14] -->
-  <script type="module">
-    // ==============================
-    // Firebase INIT
-    // ==============================
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      onValue,
-      update,
-      set,
-      push,
-      get,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
-      authDomain: "noitu-7dca6.firebaseapp.com",
-      databaseURL: "https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "noitu-7dca6",
-      storageBucket: "noitu-7dca6.firebasestorage.app",
-      messagingSenderId: "253854569418",
-      appId: "1:253854569418:web:105e8e3edfdd9baafff533"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // ==============================
-    // DOM SHORTCUTS
-    // ==============================
-    const nameInput = document.getElementById("nameInput");
-    const roomInput = document.getElementById("roomInput");
-    const adminCodeInput = document.getElementById("adminCodeInput");
-    const apiKeyInput = document.getElementById("apiKeyInput");
-
-    const enterBtn = document.getElementById("enterBtn");
-    const leaveBtn = document.getElementById("leaveBtn");
-    const connectionStatus = document.getElementById("connectionStatus");
-    const roomIdText = document.getElementById("roomIdText");
-
-    const rootWordEl = document.getElementById("rootWord");
-    const resetBtn = document.getElementById("resetBtn");
-    const adminLabel = document.getElementById("adminLabel");
-
-    const answerInput = document.getElementById("answerInput");
-    const answerBtn = document.getElementById("answerBtn");
-    const answerFeedback = document.getElementById("answerFeedback");
-
-    const playersList = document.getElementById("playersList");
-    const selfScoreEl = document.getElementById("selfScore");
-    const selfAliveText = document.getElementById("selfAliveText");
-
-    const chatLog = document.getElementById("chatLog");
-    const chatInput = document.getElementById("chatInput");
-    const chatSendBtn = document.getElementById("chatSendBtn");
-    const gptStatus = document.getElementById("gptStatus");
-    const botChip = document.getElementById("botChip");
-    const botStatusText = document.getElementById("botStatusText");
-
-    const scoreboard = document.getElementById("scoreboard");
-    const scoreboardBody = document.getElementById("scoreboardBody");
-
-    // ==============================
-    // LOCAL STATE (KHÔNG RESET KHI F5)
-    // ==============================
-    const ADMIN_CODE = "172727.7777";
-    let currentRoomId = null;
-    let currentUserName = null;
-    let isAdmin = false;
-    let isAlive = false;
-    let currentScore = 0;
-    let botEnabled = false;
-    let listeners = [];
-    let gameEnded = false; // Bảng xếp hạng chỉ hiện 1 lần
-    let lastRoot = null;
-
-    // ==============================
-    // LOCALSTORAGE RESTORE
-    // ==============================
-    function loadLocalState() {
-      const savedName = localStorage.getItem("noitu_name");
-      if (savedName) {
-        nameInput.value = savedName;
-        currentUserName = savedName;
-      }
-      const savedApiKey = localStorage.getItem("noitu_openai_key");
-      if (savedApiKey) {
-        apiKeyInput.value = savedApiKey;
-      }
-      const savedRoom = localStorage.getItem("noitu_room");
-      if (savedRoom) {
-        roomInput.value = savedRoom;
-      }
-    }
-
-    loadLocalState();
-
-    // ==============================
-    // HELPER: LISTENER MANAGEMENT
-    // ==============================
-    function clearListeners() {
-      listeners.forEach(unsub => {
-        try {
-          unsub();
-        } catch (e) {}
-      });
-      listeners = [];
-    }
-
-    function addListener(unsub) {
-      listeners.push(unsub);
-    }
-
-    // ==============================
-    // HELPER: UI STATUS
-    // ==============================
-    function setOnlineStatus(on) {
-      const dot = connectionStatus.querySelector(".status-dot");
-      const text = connectionStatus.querySelector("span:last-child");
-      if (on) {
-        dot.classList.remove("status-offline");
-        dot.classList.add("status-online");
-        text.textContent = "ONLINE";
-      } else {
-        dot.classList.remove("status-online");
-        dot.classList.add("status-offline");
-        text.textContent = "OFFLINE";
-      }
-    }
-
-    function appendChatMessage({ author, text, role = "player", meta = "" }) {
-      const div = document.createElement("div");
-      div.className = "chat-msg";
-
-      const authorSpan = document.createElement("span");
-      authorSpan.className = "chat-author";
-      authorSpan.textContent = author + ":";
-      if (role === "system") authorSpan.classList.add("system");
-      if (role === "admin") authorSpan.classList.add("admin");
-      if (role === "bot") authorSpan.classList.add("bot");
-
-      const textSpan = document.createElement("span");
-      textSpan.className = "chat-text";
-      textSpan.textContent = " " + text;
-
-      const metaSpan = document.createElement("span");
-      metaSpan.className = "chat-meta";
-      metaSpan.textContent = meta;
-
-      div.appendChild(authorSpan);
-      div.appendChild(textSpan);
-      if (meta) div.appendChild(metaSpan);
-      chatLog.appendChild(div);
-      chatLog.scrollTop = chatLog.scrollHeight;
-    }
-
-    function systemMessage(text) {
-      appendChatMessage({ author: "SYSTEM", text, role: "system" });
-    }
-
-    function botMessage(text) {
-      appendChatMessage({ author: "BOT", text, role: "bot" });
-    }
-
-    function updateBotUI() {
-      botStatusText.textContent = botEnabled ? "ON" : "OFF";
-      if (botEnabled) {
-        botChip.classList.add("on");
-        gptStatus.textContent = "GPT đang bật. Mọi câu trả lời sẽ được gửi AI chấm. Lệnh: /bot, /botgpt (toggle), /reset (admin).";
-      } else {
-        botChip.classList.remove("on");
-        gptStatus.textContent = "GPT đang tắt. Dùng /bot hoặc /botgpt trong chat để bật AI chấm điểm.";
-      }
-    }
-
-    function updateSelfStatusUI() {
-      selfScoreEl.textContent = currentScore;
-      selfAliveText.textContent = currentRoomId ? (isAlive ? "đang chơi" : "bị loại / chờ") : "chưa vào";
-    }
-
-    // ==============================
-    // OPENAI HELPERS (GPT-4.1) [web:9][web:12][web:15][web:18]
-    // ==============================
-    function getOpenAIKey() {
-      return apiKeyInput.value.trim();
-    }
-
-    // Helper gọi GPT cho JSON structured output
-    async function callOpenAIJson(prompt, schema) {
-      const apiKey = getOpenAIKey();
-      if (!apiKey) {
-        throw new Error("Chưa nhập OpenAI API key.");
-      }
-      const body = {
-        model: "gpt-4.1",
-        response_format: { type: "json_schema", json_schema: { name: "noitu_schema", schema, strict: true } },
-        messages: [
-          {
-            role: "system",
-            content: "Bạn là trọng tài trò chơi nối từ ghép tiếng Việt. Luôn trả lời đúng JSON theo schema."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      };
-
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + apiKey,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error("Lỗi OpenAI: " + res.status + " " + text);
-      }
-      const data = await res.json();
-      const content = data.choices?.[0]?.message?.content;
-      try {
-        return JSON.parse(content);
-      } catch (e) {
-        throw new Error("Không parse được JSON từ OpenAI.");
-      }
-    }
-
-    // AI RA ĐỀ - trả { "root": "từ" }
-    async function aiGenerateRoot() {
-      const schema = {
-        type: "object",
-        properties: {
-          root: { type: "string" }
-        },
-        required: ["root"],
-        additionalProperties: false
-      };
-      const prompt =
-        "Sinh một từ tiếng Việt (không dấu phẩy, không ký tự đặc biệt) để làm từ gốc cho trò chơi nối từ ghép tiếng Việt. " +
-        "Chỉ trả JSON dạng {"root":"từ"}.";
-      return callOpenAIJson(prompt, schema);
-    }
-
-    // AI CHẤM CÂU TRẢ LỜI - trả {valid,next} hoặc {valid:false}
-    async function aiValidateAnswer(root, lastWord, answer) {
-      const schema = {
-        type: "object",
-        properties: {
-          valid: { type: "boolean" },
-          next: { type: "string" }
-        },
-        required: ["valid"],
-        additionalProperties: false
-      };
-      const prompt =
-        "Trò chơi nối từ ghép tiếng Việt.
-" +
-        "- Từ gốc ban đầu: "" + (root || "") + "".
-" +
-        "- Từ hiện tại cuối cùng trên bàn chơi (nếu có): "" + (lastWord || "") + "".
-" +
-        "- Người chơi đưa ra: "" + answer + "".
-
-" +
-        "Luật:
-" +
-        "1. Người chơi phải đưa ra một từ ghép tiếng Việt hợp lệ.
-" +
-        "2. Từ ghép mới phải nối logic nghĩa / thành phần, giống ví dụ: tổ → tổ quốc → quốc hồn → hồn ma → ma quỷ.
-" +
-        "3. Trả JSON {"valid":true,"next":"từ_cuối"} nếu chấp nhận, với "next" là từ mới sẽ trở thành từ cuối dùng cho lượt sau.
-" +
-        "4. Nếu không chấp nhận, trả {"valid":false}.
-" +
-        "Không giải thích gì thêm, chỉ trả JSON.";
-      return callOpenAIJson(prompt, schema);
-    }
-
-    // ==============================
-    // FIREBASE ROOM SETUP
-    // ==============================
-    async function enterRoom() {
-      const name = nameInput.value.trim();
-      const roomId = roomInput.value.trim();
-      const adminCode = adminCodeInput.value.trim();
-
-      if (!name || !roomId) {
-        alert("Vui lòng nhập tên và mã phòng.");
-        return;
-      }
-
-      localStorage.setItem("noitu_name", name);
-      localStorage.setItem("noitu_room", roomId);
-      if (getOpenAIKey()) {
-        localStorage.setItem("noitu_openai_key", getOpenAIKey());
-      }
-
-      clearListeners();
-      currentRoomId = roomId;
-      currentUserName = name;
-      gameEnded = false;
-
-      const roomRef = ref(db, "rooms/" + roomId);
-
-      // Tạo player entry / join room
-      const updates = {};
-      updates["players/" + name] = {
-        alive: true,
-        score: 0
-      };
-
-      // Admin logic: nếu nhập đúng mã và chưa đủ 3 admin
-      const adminsSnap = await get(ref(db, "rooms/" + roomId + "/admins"));
-      let admins = adminsSnap.exists() ? adminsSnap.val() : {};
-      const adminsCount = Object.keys(admins).length;
-      const wantsAdmin = adminCode === ADMIN_CODE;
-      if (wantsAdmin && (!admins[currentUserName] && adminsCount < 3 || admins[currentUserName])) {
-        updates["admins/" + name] = true;
-        isAdmin = true;
-      } else {
-        isAdmin = !!admins[currentUserName];
-      }
-
-      await update(roomRef, updates);
-
-      // Gắn presence listener, state, players, chat
-      attachRoomListeners(roomId);
-
-      enterBtn.style.display = "none";
-      leaveBtn.style.display = "inline-flex";
-      setOnlineStatus(true);
-      roomIdText.textContent = roomId;
-      adminLabel.style.display = isAdmin ? "block" : "none";
-      resetBtn.style.display = isAdmin ? "inline-flex" : "none";
-
-      systemMessage("Người chơi " + name + " đã vào phòng " + roomId + ".");
-    }
-
-    async function leaveRoom() {
-      if (!currentRoomId || !currentUserName) return;
-      clearListeners();
-      setOnlineStatus(false);
-      roomIdText.textContent = "Chưa vào";
-
-      // Không xóa player để giữ lịch sử, chỉ đánh dấu alive=false
-      await update(ref(db, "rooms/" + currentRoomId + "/players/" + currentUserName), {
-        alive: false
-      });
-
-      currentRoomId = null;
-      isAdmin = false;
-      isAlive = false;
-      currentScore = 0;
-      updateSelfStatusUI();
-
-      enterBtn.style.display = "inline-flex";
-      leaveBtn.style.display = "none";
-      adminLabel.style.display = "none";
-      resetBtn.style.display = "none";
-      scoreboard.style.display = "none";
-      gameEnded = false;
-      lastRoot = null;
-      rootWordEl.textContent = "—";
-      answerFeedback.textContent = "";
-
-      systemMessage("Bạn đã rời phòng.");
-    }
-
-    // Attach realtime listeners for room
-    function attachRoomListeners(roomId) {
-      // State (root, botEnabled, lastWord, gameEnded, lastRoot)
-      const stateRef = ref(db, "rooms/" + roomId + "/state");
-      addListener(
-        onValue(stateRef, async (snap) => {
-          const state = snap.val() || {};
-          // Nếu chưa có root => AI tạo root (AI host)
-          if (!state.root) {
-            try {
-              const json = await aiGenerateRoot();
-              const newRoot = (json.root || "").trim();
-              if (newRoot) {
-                await update(stateRef, {
-                  root: newRoot,
-                  lastWord: "",
-                  botEnabled: false
-                });
-                systemMessage("AI đã tạo từ gốc: " + newRoot);
-              }
-            } catch (e) {
-              console.error(e);
-              systemMessage("Không thể gọi AI tạo từ gốc. Vui lòng nhập OpenAI key hợp lệ.");
-            }
-            return;
-          }
-
-          // Có root => update UI
-          rootWordEl.textContent = state.root || "—";
-          lastRoot = state.root || "—";
-          botEnabled = !!state.botEnabled;
-          updateBotUI();
-
-          // Game ended?
-          if (state.gameOver && !gameEnded) {
-            gameEnded = true;
-            renderScoreboard();
-          }
-        })
-      );
-
-      // Players
-      const playersRef = ref(db, "rooms/" + roomId + "/players");
-      addListener(
-        onValue(playersRef, (snap) => {
-          const players = snap.val() || {};
-          renderPlayers(players);
-          if (currentUserName && players[currentUserName]) {
-            isAlive = !!players[currentUserName].alive;
-            currentScore = Number(players[currentUserName].score || 0);
-            updateSelfStatusUI();
-          }
-
-          // Check end game: chỉ còn 1 alive => set state.gameOver
-          const aliveNames = Object.keys(players).filter((p) => players[p].alive);
-          if (aliveNames.length === 1 && !gameEnded) {
-            const roomStateRef = ref(db, "rooms/" + roomId + "/state");
-            update(roomStateRef, { gameOver: true });
-          }
-        })
-      );
-
-      // Admins
-      const adminsRef = ref(db, "rooms/" + roomId + "/admins");
-      addListener(
-        onValue(adminsRef, (snap) => {
-          const admins = snap.val() || {};
-          isAdmin = !!admins[currentUserName];
-          adminLabel.style.display = isAdmin ? "block" : "none";
-          resetBtn.style.display = isAdmin ? "inline-flex" : "none";
-        })
-      );
-
-      // Chat
-      const chatRef = ref(db, "rooms/" + roomId + "/chat");
-      addListener(
-        onValue(chatRef, (snap) => {
-          const msgs = snap.val() || {};
-          chatLog.innerHTML = "";
-          const keys = Object.keys(msgs).sort();
-          keys.forEach((k) => {
-            const m = msgs[k];
-            if (!m) return;
-            appendChatMessage({
-              author: m.author || "???",
-              text: m.text || "",
-              role: m.role || "player",
-              meta: m.meta || ""
-            });
-          });
-        })
-      );
-    }
-
-    // ==============================
-    // RENDER PLAYERS + SCOREBOARD
-    // ==============================
-    function renderPlayers(players) {
-      playersList.innerHTML = "";
-      const names = Object.keys(players);
-      names.forEach((name) => {
-        const p = players[name];
-        const div = document.createElement("div");
-        div.className = "player-item";
-
-        const left = document.createElement("div");
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "player-name";
-        nameSpan.textContent = name;
-
-        left.appendChild(nameSpan);
-
-        const right = document.createElement("div");
-        right.className = "player-meta";
-
-        const aliveSpan = document.createElement("span");
-        aliveSpan.className = p.alive ? "badge-alive" : "badge-dead";
-        aliveSpan.textContent = p.alive ? "ALIVE" : "OUT";
-
-        const scoreSpan = document.createElement("span");
-        scoreSpan.textContent = "Score: " + (p.score || 0);
-
-        right.appendChild(aliveSpan);
-        right.appendChild(scoreSpan);
-
-        div.appendChild(left);
-        div.appendChild(right);
-        playersList.appendChild(div);
-      });
-    }
-
-    async function renderScoreboard() {
-      if (!currentRoomId) return;
-      const playersSnap = await get(ref(db, "rooms/" + currentRoomId + "/players"));
-      if (!playersSnap.exists()) return;
-      const players = playersSnap.val();
-      const entries = Object.keys(players).map((name) => ({
-        name,
-        score: Number(players[name].score || 0)
-      }));
-      entries.sort((a, b) => b.score - a.score);
-
-      scoreboardBody.innerHTML = "";
-      entries.forEach((entry, idx) => {
-        const div = document.createElement("div");
-        div.className = "scoreboard-item";
-        const left = document.createElement("span");
-        left.innerHTML = '<span class="scoreboard-rank">#' + (idx + 1) + "</span>" + entry.name;
-        const right = document.createElement("span");
-        right.textContent = entry.score + " điểm";
-        div.appendChild(left);
-        div.appendChild(right);
-        scoreboardBody.appendChild(div);
-      });
-
-      scoreboard.style.display = "block";
-    }
-
-    // ==============================
-    // GAME LOGIC: ANSWER FLOW
-    // ==============================
-    async function handleAnswerSubmit() {
-      if (!currentRoomId || !currentUserName) {
-        alert("Bạn chưa vào phòng.");
-        return;
-      }
-      if (!isAlive && !isAdmin) {
-        answerFeedback.textContent = "Bạn đã bị loại, không thể trả lời.";
-        answerFeedback.className = "info-line error";
-        return;
-      }
-
-      const answer = answerInput.value.trim();
-      if (!answer) return;
-
-      answerInput.value = "";
-      answerFeedback.textContent = "Đang gửi AI chấm...";
-      answerFeedback.className = "info-line";
-
-      // Lọc nhanh / chống spam bằng words.txt (giả lập: chỉ check độ dài)
-      if (answer.length > 48) {
-        answerFeedback.textContent = "Từ quá dài, nghi ngờ spam.";
-        answerFeedback.className = "info-line error";
-        return;
-      }
-
-      // Nếu bot chưa bật, vẫn gửi để chấm (yêu cầu bắt buộc 100%)
-      try {
-        const roomStateSnap = await get(ref(db, "rooms/" + currentRoomId + "/state"));
-        const state = roomStateSnap.exists() ? roomStateSnap.val() : {};
-        const root = state.root || "";
-        const lastWord = state.lastWord || "";
-
-        const json = await aiValidateAnswer(root, lastWord, answer);
-        if (json.valid) {
-          // Đúng
-          const nextWord = (json.next || answer).trim();
-          const updates = {};
-          updates["rooms/" + currentRoomId + "/state/lastWord"] = nextWord;
-          updates["rooms/" + currentRoomId + "/state/root"] = root || nextWord; // root giữ nguyên nếu có, nếu không dùng next
-
-          // Cập nhật score người chơi
-          const playerRef = ref(db, "rooms/" + currentRoomId + "/players/" + currentUserName);
-          const playerSnap = await get(playerRef);
-          let score = 0;
-          let alive = true;
-          if (playerSnap.exists()) {
-            const p = playerSnap.val();
-            score = Number(p.score || 0) + 1;
-            alive = p.alive !== false;
-          } else {
-            score = 1;
-            alive = true;
-          }
-          updates["rooms/" + currentRoomId + "/players/" + currentUserName] = {
-            alive,
-            score
-          };
-
-          await update(ref(db), updates);
-
-          answerFeedback.textContent = "Từ hợp lệ! Từ cuối mới: " + nextWord;
-          answerFeedback.className = "info-line success";
-
-          // Gửi chat thông báo
-          await push(ref(db, "rooms/" + currentRoomId + "/chat"), {
-            author: currentUserName,
-            text: "đã nối: " + answer + " → " + nextWord,
-            role: isAdmin ? "admin" : "player",
-            meta: new Date().toLocaleTimeString()
-          });
-        } else {
-          // Sai
-          answerFeedback.textContent = "Từ không hợp lệ theo AI.";
-          answerFeedback.className = "info-line error";
-
-          if (!isAdmin) {
-            // Người thường: sai 1 lần -> bị loại + cấm chat
-            await update(ref(db, "rooms/" + currentRoomId + "/players/" + currentUserName), {
-              alive: false
-            });
-            isAlive = false;
-            updateSelfStatusUI();
-            systemMessage(currentUserName + " đã trả lời sai và bị loại khỏi game.");
-          } else {
-            // Admin: có thể sai nhưng không bị cấm chat
-            systemMessage("Admin " + currentUserName + " vừa trả lời sai nhưng không bị loại.");
-          }
-        }
-      } catch (e) {
-        console.error(e);
-        answerFeedback.textContent = "Lỗi khi chấm bằng AI: " + e.message;
-        answerFeedback.className = "info-line error";
-      }
-    }
-
-    // ==============================
-    // CHAT + COMMANDS
-    // ==============================
-    async function sendChat() {
-      if (!currentRoomId || !currentUserName) {
-        alert("Bạn chưa vào phòng.");
-        return;
-      }
-      if (!isAlive && !isAdmin) {
-        appendChatMessage({
-          author: "SYSTEM",
-          text: "Bạn đã bị loại, không thể chat.",
-          role: "system"
-        });
-        return;
-      }
-
-      const text = chatInput.value.trim();
-      if (!text) return;
-      chatInput.value = "";
-
-      // LỆNH CHAT: phải return ngay, không rơi xuống logic chấm
-      if (text === "/bot" || text === "/botgpt") {
-        // Toggle botEnabled trong state
-        const stateRef = ref(db, "rooms/" + currentRoomId + "/state");
-        const snap = await get(stateRef);
-        const state = snap.exists() ? snap.val() : {};
-        const newVal = !state.botEnabled;
-        await update(stateRef, { botEnabled: newVal });
-        botEnabled = newVal;
-        updateBotUI();
-        systemMessage("BOT AI đã được " + (newVal ? "bật" : "tắt") + " bởi " + currentUserName + ".");
-        return;
-      }
-
-      if (text === "/reset") {
-        if (!isAdmin) {
-          appendChatMessage({
-            author: "SYSTEM",
-            text: "Chỉ admin mới được /reset.",
-            role: "system"
-          });
-          return;
-        }
-        await resetGame(true);
-        return;
-      }
-
-      // Bình thường: push chat
-      await push(ref(db, "rooms/" + currentRoomId + "/chat"), {
-        author: currentUserName,
-        text,
-        role: isAdmin ? "admin" : "player",
-        meta: new Date().toLocaleTimeString()
-      });
-    }
-
-    // ==============================
-    // RESET GAME (ADMIN ONLY)
-    // ==============================
-    async function resetGame(fromCommand) {
-      if (!currentRoomId || !currentUserName) return;
-      if (!isAdmin) {
-        systemMessage("Bạn không phải admin, không thể reset.");
-        return;
-      }
-
-      const roomRef = ref(db, "rooms/" + currentRoomId);
-
-      try {
-        // Sinh từ gốc mới
-        const json = await aiGenerateRoot();
-        const newRoot = (json.root || "").trim() || "tổ";
-
-        // Reset state
-        const updates = {};
-        updates["state"] = {
-          root: newRoot,
-          lastWord: "",
-          botEnabled: false,
-          gameOver: false
+    <div id="leaderboard">
+        <h2 style="color: var(--neon-blue)">🏆 KẾT THÚC GAME 🏆</h2>
+        <div class="winner-name" id="winner-display"></div>
+        <div id="ranking-list" style="text-align: left; margin-top: 15px;"></div>
+        <button onclick="document.getElementById('leaderboard').style.display='none'" style="margin-top: 15px;">Đóng</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, set, update, onValue, push, runTransaction, get, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        // --- 1. CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
+            authDomain: "noitu-7dca6.firebaseapp.com",
+            databaseURL: "https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "noitu-7dca6",
+            storageBucket: "noitu-7dca6.firebasestorage.app",
+            messagingSenderId: "253854569418",
+            appId: "1:253854569418:web:105e8e3edfdd9baafff533"
         };
-        // Giữ players, chỉ đặt alive = true nhưng không reset score
-        const playersSnap = await get(ref(db, "rooms/" + currentRoomId + "/players"));
-        if (playersSnap.exists()) {
-          const players = playersSnap.val();
-          Object.keys(players).forEach((name) => {
-            const p = players[name];
-            updates["players/" + name] = {
-              alive: true,
-              score: p.score || 0
-            };
-          });
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const ROOM_ID = "phong_chung_v1";
+        const ADMIN_CODE = "172727.7777";
+
+        // --- 2. GLOBAL STATE ---
+        let currentUser = {
+            name: localStorage.getItem('nt_name') || "",
+            key: localStorage.getItem('nt_key') || "",
+            isAdmin: false,
+            id: localStorage.getItem('nt_id') || "user_" + Math.random().toString(36).substr(2, 9)
+        };
+        let gameState = { root: "", status: "waiting" }; // status: waiting, playing, finished
+        let myAliveStatus = true;
+
+        // UI Refs
+        const loginScreen = document.getElementById('login-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const listContainer = document.getElementById('list-container');
+        const chatBox = document.getElementById('chat-box');
+        const currentRootEl = document.getElementById('current-root');
+        const adminControls = document.getElementById('admin-controls');
+        const leaderboard = document.getElementById('leaderboard');
+
+        // --- 3. CORE FUNCTIONS ---
+
+        // 3.1 Login & Init
+        async function initGame() {
+            // Restore session inputs
+            document.getElementById('inp-name').value = currentUser.name;
+            document.getElementById('inp-key').value = currentUser.key;
+            if (localStorage.getItem('nt_admin') === 'true') {
+                document.getElementById('inp-admin').value = ADMIN_CODE;
+            }
+
+            // Bind Events
+            document.getElementById('btn-join').addEventListener('click', handleJoin);
+            document.getElementById('btn-send').addEventListener('click', handleSend);
+            document.getElementById('inp-chat').addEventListener('keypress', (e) => e.key === 'Enter' && handleSend());
+            document.getElementById('btn-reset').addEventListener('click', handleResetGame);
+
+            // Auto-join if data exists (Anti-F5 UX)
+            if (currentUser.name && currentUser.key) {
+               // Optional: Auto click join. For now, let user confirm or change key.
+            }
         }
-        await update(roomRef, updates);
 
-        scoreboard.style.display = "none";
-        gameEnded = false;
-        botEnabled = false;
-        updateBotUI();
+        async function handleJoin() {
+            const name = document.getElementById('inp-name').value.trim();
+            const key = document.getElementById('inp-key').value.trim();
+            const code = document.getElementById('inp-admin').value.trim();
 
-        const msg = "Admin " + currentUserName + " đã reset game. Từ gốc mới: " + newRoot;
-        systemMessage(msg);
-        await push(ref(db, "rooms/" + currentRoomId + "/chat"), {
-          author: "SYSTEM",
-          text: msg,
-          role: "system",
-          meta: new Date().toLocaleTimeString()
-        });
-      } catch (e) {
-        console.error(e);
-        systemMessage("Lỗi khi reset game bằng AI: " + e.message);
-      }
-    }
+            if (!name || !key) return alert("Vui lòng nhập Tên và API Key!");
 
-    // ==============================
-    // EVENTS – KHÔNG GỌI ENTER LẠI KHI F5
-    // ==============================
-    enterBtn.addEventListener("click", () => {
-      enterRoom();
-    });
-    leaveBtn.addEventListener("click", () => {
-      leaveRoom();
-    });
+            // Save Local
+            currentUser.name = name;
+            currentUser.key = key;
+            localStorage.setItem('nt_name', name);
+            localStorage.setItem('nt_key', key);
+            localStorage.setItem('nt_id', currentUser.id);
 
-    answerBtn.addEventListener("click", () => {
-      handleAnswerSubmit();
-    });
-    answerInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleAnswerSubmit();
-      }
-    });
+            // Check Admin
+            if (code === ADMIN_CODE) {
+                // Try register admin
+                const adminRef = ref(db, `rooms/${ROOM_ID}/admins`);
+                await runTransaction(adminRef, (admins) => {
+                    if (!admins) return { [currentUser.id]: true };
+                    if (Object.keys(admins).length < 3) {
+                        admins[currentUser.id] = true;
+                        return admins;
+                    }
+                    return admins; // Max reached
+                });
+                // Double check if we actually got it
+                const snapshot = await get(child(ref(db), `rooms/${ROOM_ID}/admins/${currentUser.id}`));
+                if (snapshot.exists()) {
+                    currentUser.isAdmin = true;
+                    localStorage.setItem('nt_admin', 'true');
+                    adminControls.style.display = 'block';
+                }
+            } else {
+                localStorage.removeItem('nt_admin');
+            }
 
-    chatSendBtn.addEventListener("click", () => {
-      sendChat();
-    });
-    chatInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendChat();
-      }
-    });
+            // Register Player (Update/Set)
+            // Use update to not overwrite score if F5, but here we reset score on join if not in list?
+            // Prompt says: F5 not lose state. So we just update presence.
+            const playerRef = ref(db, `rooms/${ROOM_ID}/players/${currentUser.id}`);
+            // Check if exists to keep score
+            const pSnap = await get(playerRef);
+            if (!pSnap.exists()) {
+                await set(playerRef, {
+                    name: name,
+                    alive: true,
+                    score: 0
+                });
+            } else {
+                // Update name just in case, keep score/alive
+                update(playerRef, { name: name });
+            }
 
-    resetBtn.addEventListener("click", () => {
-      resetGame(false);
-    });
+            // Switch UI
+            loginScreen.style.display = 'none';
+            gameScreen.style.display = 'grid'; // Grid for desktop layout
 
-    apiKeyInput.addEventListener("change", () => {
-      const key = apiKeyInput.value.trim();
-      if (key) {
-        localStorage.setItem("noitu_openai_key", key);
-      }
-    });
+            // Start Listeners
+            startListeners();
+        }
 
-    // Không tự động gọi enterRoom() khi reload,
-    // chỉ khôi phục input từ localStorage để tránh mất state trong DB. [web:2]
-  </script>
+        // 3.2 Listeners
+        function startListeners() {
+            // State Listener
+            onValue(ref(db, `rooms/${ROOM_ID}/state`), (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    gameState = data;
+                    currentRootEl.innerText = data.root || "CHỜ GAME...";
+                    document.getElementById('game-status').innerText = 
+                        data.status === 'playing' ? "🟢 ĐANG DIỄN RA" : 
+                        data.status === 'finished' ? "🔴 ĐÃ KẾT THÚC" : "🟡 CHỜ BẮT ĐẦU";
+                } else {
+                    // Initialize if empty
+                    if (currentUser.isAdmin) {
+                        // Admins can trigger init, others wait
+                    }
+                }
+            });
+
+            // Players Listener
+            onValue(ref(db, `rooms/${ROOM_ID}/players`), (snapshot) => {
+                const players = snapshot.val() || {};
+                renderPlayers(players);
+                checkGameOver(players);
+                
+                if (players[currentUser.id]) {
+                    myAliveStatus = players[currentUser.id].alive;
+                    const inp = document.getElementById('inp-chat');
+                    
+                    if (!myAliveStatus && !currentUser.isAdmin) {
+                        inp.disabled = true;
+                        inp.placeholder = "Bạn đã bị loại!";
+                    } else if (!myAliveStatus && currentUser.isAdmin) {
+                        inp.disabled = false;
+                        inp.placeholder = "Admin (Đã chết) - Vẫn chat được";
+                    } else {
+                        inp.disabled = false;
+                        inp.placeholder = "Nhập từ nối hoặc chat...";
+                    }
+                }
+            });
+
+            // Chat Listener
+            const chatRef = ref(db, `rooms/${ROOM_ID}/chat`);
+            // Limit to last 50 messages to prevent heavy load
+            // Note: simple implementation uses onChildAdded
+            let initialLoad = true;
+            onValue(chatRef, (snapshot) => {
+                const msgs = snapshot.val();
+                chatBox.innerHTML = '<div class="msg-system">Kết nối thành công...</div>';
+                if (msgs) {
+                    Object.values(msgs).forEach(msg => renderMessage(msg));
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            });
+        }
+
+        // 3.3 Rendering
+        function renderPlayers(players) {
+            listContainer.innerHTML = '';
+            // Sort by score desc
+            const sorted = Object.entries(players).sort((a, b) => b[1].score - a[1].score);
+            
+            sorted.forEach(([id, p]) => {
+                const div = document.createElement('div');
+                div.className = `player-item ${!p.alive ? 'dead' : ''}`;
+                // Check if admin (fetch separately or just visual cue from player obj? 
+                // DB structure separates admins. We'll stick to basic visual).
+                
+                div.innerHTML = `
+                    <div>
+                        <span style="font-weight:bold">${p.name}</span>
+                        ${!p.alive ? '💀' : ''}
+                    </div>
+                    <span class="score-badge">Điểm: ${p.score}</span>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function renderMessage(msg) {
+            const div = document.createElement('div');
+            div.className = 'message';
+            
+            if (msg.type === 'system') {
+                div.classList.add('msg-system');
+                div.innerText = msg.text;
+            } else {
+                div.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+                
+                if (msg.uid === currentUser.id) div.classList.add('msg-mine');
+                else div.classList.add('msg-chat');
+                
+                if (msg.status === 'correct') div.classList.add('msg-correct');
+                if (msg.status === 'wrong') div.classList.add('msg-wrong');
+            }
+            chatBox.appendChild(div);
+        }
+
+        // 3.4 Logic & AI
+        async function handleSend() {
+            const inputEl = document.getElementById('inp-chat');
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            // COMMANDS
+            if (text === '/reset' && currentUser.isAdmin) {
+                inputEl.value = '';
+                handleResetGame();
+                return;
+            }
+            
+            // Logic Chat
+            if (gameState.status !== 'playing') {
+                // Just chat
+                push(ref(db, `rooms/${ROOM_ID}/chat`), {
+                    uid: currentUser.id,
+                    name: currentUser.name,
+                    text: text,
+                    type: 'chat',
+                    timestamp: Date.now()
+                });
+                inputEl.value = '';
+                return;
+            }
+
+            // Logic Game (Playing)
+            if (!myAliveStatus && !currentUser.isAdmin) return; // Banned if not admin
+            
+            // Prevent spam while checking? UI Blocking is good but let's just clear input
+            inputEl.value = 'Đang chấm...';
+            inputEl.disabled = true;
+
+            // AI CHECK
+            try {
+                const checkResult = await callGPTCheck(gameState.root, text);
+                
+                if (checkResult.valid) {
+                    // CORRECT
+                    const nextRoot = checkResult.next.toLowerCase();
+                    
+                    // Transaction to update State & Score safely
+                    const updates = {};
+                    updates[`rooms/${ROOM_ID}/state/root`] = nextRoot;
+                    updates[`rooms/${ROOM_ID}/players/${currentUser.id}/score`] = (await getScore()) + 1; // Simple increment
+                    
+                    await update(ref(db), updates);
+                    
+                    // Push Chat
+                    push(ref(db, `rooms/${ROOM_ID}/chat`), {
+                        uid: currentUser.id,
+                        name: currentUser.name,
+                        text: text,
+                        type: 'chat',
+                        status: 'correct',
+                        timestamp: Date.now()
+                    });
+
+                } else {
+                    // WRONG
+                    const updates = {};
+                    updates[`rooms/${ROOM_ID}/players/${currentUser.id}/alive`] = false;
+                    await update(ref(db), updates);
+
+                    push(ref(db, `rooms/${ROOM_ID}/chat`), {
+                        uid: currentUser.id,
+                        name: currentUser.name,
+                        text: text + " (Sai luật/Không nghĩa)",
+                        type: 'chat',
+                        status: 'wrong',
+                        timestamp: Date.now()
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi AI: " + err.message);
+            }
+
+            inputEl.value = '';
+            if (myAliveStatus || currentUser.isAdmin) inputEl.disabled = false;
+            inputEl.focus();
+        }
+
+        async function getScore() {
+            const s = await get(ref(db, `rooms/${ROOM_ID}/players/${currentUser.id}/score`));
+            return s.val() || 0;
+        }
+
+        // 3.5 AI Integration
+        async function callGPTCheck(root, input) {
+            const prompt = `
+            Luật: Nối từ tiếng Việt. Từ trước: "${root}". Người chơi nhập: "${input}".
+            1. Người chơi phải nhập từ ghép hợp lệ có nghĩa.
+            2. Từ nhập vào phải BẮT ĐẦU bằng từ "${root}".
+            Ví dụ: Root="tổ", Input="tổ quốc" -> Valid. Next="quốc".
+            Ví dụ: Root="tổ", Input="về quê" -> Invalid.
+            Ví dụ: Root="tổ", Input="tổ sdsdsd" -> Invalid (vô nghĩa).
+
+            Trả về JSON duy nhất (không markdown):
+            {
+                "valid": boolean,
+                "next": "từ cuối cùng của input để làm root cho lượt sau"
+            }
+            `;
+
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${currentUser.key}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo", // Hoặc gpt-4o-mini nếu có
+                    messages: [
+                        {role: "system", content: "Bạn là trọng tài game nối từ tiếng Việt JSON."},
+                        {role: "user", content: prompt}
+                    ],
+                    temperature: 0.3
+                })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            
+            let content = data.choices[0].message.content;
+            // Clean JSON string if GPT adds backticks
+            content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+            return JSON.parse(content);
+        }
+
+        async function generateRootWord() {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${currentUser.key}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        {role: "user", content: "Cho 1 từ đơn tiếng Việt thông dụng để bắt đầu game nối từ. Trả JSON: { \"root\": \"từ\" }"}
+                    ]
+                })
+            });
+            const data = await res.json();
+            let content = data.choices[0].message.content.replace(/```json/g, "").replace(/```/g, "").trim();
+            return JSON.parse(content).root;
+        }
+
+        // 3.6 Admin & Game Flow
+        async function handleResetGame() {
+            if (!currentUser.isAdmin) return;
+            
+            const btn = document.getElementById('btn-reset');
+            btn.disabled = true;
+            btn.innerText = "Đang tạo game mới...";
+
+            try {
+                // 1. Get new root
+                const newRoot = await generateRootWord();
+
+                // 2. Reset Players (Keep them but reset score/alive)
+                const pSnap = await get(ref(db, `rooms/${ROOM_ID}/players`));
+                const players = pSnap.val() || {};
+                const updates = {};
+                
+                Object.keys(players).forEach(pid => {
+                    updates[`rooms/${ROOM_ID}/players/${pid}/alive`] = true;
+                    updates[`rooms/${ROOM_ID}/players/${pid}/score`] = 0;
+                });
+
+                // 3. Reset State & Chat
+                updates[`rooms/${ROOM_ID}/state`] = {
+                    root: newRoot.toLowerCase(),
+                    status: "playing"
+                };
+                updates[`rooms/${ROOM_ID}/chat`] = null; // Clear chat history
+
+                await update(ref(db), updates);
+                
+                // Add system msg
+                push(ref(db, `rooms/${ROOM_ID}/chat`), {
+                    type: 'system',
+                    text: `Game đã được reset! Từ khóa đầu tiên: ${newRoot.toUpperCase()}`
+                });
+
+            } catch (e) {
+                alert("Lỗi Reset: " + e.message);
+            }
+            btn.disabled = false;
+            btn.innerText = "⚠️ RESET GAME (ADMIN)";
+            leaderboard.style.display = 'none';
+        }
+
+        function checkGameOver(players) {
+            if (gameState.status !== 'playing') return;
+
+            const alivePlayers = Object.values(players).filter(p => p.alive);
+            const totalPlayers = Object.keys(players).length;
+
+            // End if 1 survivor (and total > 1 to start with) or 0 survivors
+            if (totalPlayers > 1 && alivePlayers.length <= 1) {
+                // Determine winner
+                // Only admin triggers the strict "Status: finished" update to prevent race conditions loops,
+                // OR we let the last logic simply show UI.
+                // Prompt says: "Auto kết thúc game". We update DB state.
+                
+                // To avoid multiple clients spamming update, only perform if state is still playing
+                // Ideally use Cloud Functions, but here client-side: 
+                // We'll just show Leaderboard locally. Admin presses Reset to officially restart.
+                
+                // Let's update status to finished only once
+                 if (alivePlayers.length === 1) {
+                    // We need to stop the game in DB so no one can answer
+                     // Since anyone can run this code, we need a lock or just let it happen.
+                     // Simple check: If I am the winner or admin?
+                     // Let's just show local Leaderboard first.
+                 }
+                 
+                 showLeaderboard(players);
+                 
+                 // Update DB to stop game inputs
+                 // update(ref(db, `rooms/${ROOM_ID}/state`), { status: 'finished', root: gameState.root });
+            }
+        }
+
+        function showLeaderboard(players) {
+            // Check if already shown this session/round to avoid popup spam
+            // For simplicity, we show it based on game status update logic.
+            // Here we just render it.
+            
+            const sorted = Object.entries(players).sort((a, b) => b[1].score - a[1].score);
+            const winner = sorted.find(p => p[1].alive);
+            
+            if (winner) {
+                document.getElementById('winner-display').innerText = `🥇 ${winner[1].name}`;
+            } else {
+                document.getElementById('winner-display').innerText = `💀 Không ai sống sót`;
+            }
+
+            let html = '';
+            sorted.forEach((p, index) => {
+                html += `
+                <div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #333;">
+                    <span>#${index+1} ${p[1].name} ${!p[1].alive ? '(💀)' : ''}</span>
+                    <span style="color:var(--neon-green)">${p[1].score}</span>
+                </div>`;
+            });
+            document.getElementById('ranking-list').innerHTML = html;
+            
+            // Only show if we determine game is technically over
+            const aliveCount = Object.values(players).filter(p => p.alive).length;
+            if (aliveCount <= 1 && Object.keys(players).length > 1) {
+                if (leaderboard.style.display !== 'block') {
+                     leaderboard.style.display = 'block';
+                     // Set game finished
+                     if (currentUser.isAdmin && gameState.status === 'playing') {
+                        update(ref(db, `rooms/${ROOM_ID}/state`), { status: 'finished', root: gameState.root });
+                     }
+                }
+            }
+        }
+
+        // Init
+        initGame();
+
+    </script>
 </body>
 </html>
