@@ -3,7 +3,7 @@
 <head>
 <base href="https://cdn.jsdelivr.net/gh/VinMannie/Run_3@gh-pages/">
 <meta charset="utf-8">
-<title>Run 3 Mobile – Video Background</title>
+<title>Run 3 – Custom Avatar</title>
 
 <meta name="viewport"
       content="width=device-width,height=device-height,initial-scale=1.0,user-scalable=no">
@@ -30,9 +30,9 @@ html,body{
     width:100%;
     height:100%;
     object-fit:cover;
-    z-index:-2;
+    z-index:-3;
     pointer-events:none;
-    opacity:0.35;       /* chỉnh đậm nhạt nền */
+    opacity:0.35;
 }
 
 /* ===== GAME CANVAS ===== */
@@ -40,9 +40,11 @@ html,body{
     width:100%;
     height:100%;
     background:transparent;
+    position:relative;
+    z-index:1;
 }
 
-/* ===== CONTROL BUTTONS ===== */
+/* ===== ROTATE BUTTONS ===== */
 .control{
     position:fixed;
     bottom:24px;
@@ -61,18 +63,38 @@ html,body{
 }
 #leftBtn{ left:20px; }
 #rightBtn{ right:20px; }
+
+/* ===== CHE GAMES235 + AVATAR ===== */
+#custom-avatar{
+    position:fixed;
+    right:24px;
+    bottom:120px;   /* đúng vị trí More games */
+    width:120px;
+    z-index:10000;
+    pointer-events:none;
+}
+#custom-avatar img{
+    width:100%;
+    height:auto;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.7));
+}
 </style>
 </head>
 
 <body>
 
-<!-- ===== SPACE BACKGROUND VIDEO ===== -->
+<!-- ===== NỀN VIDEO (CÓ THỂ BỎ) ===== -->
 <video id="bg-video" autoplay muted loop playsinline>
     <source src="space.mp4" type="video/mp4">
 </video>
 
 <!-- ===== GAME ===== -->
 <div id="openfl-content"></div>
+
+<!-- ===== AVATAR CHE QUẢNG CÁO ===== -->
+<div id="custom-avatar">
+    <img src="me.png" alt="Me">
+</div>
 
 <!-- ===== CONTROLS ===== -->
 <div id="leftBtn" class="control">⟲</div>
@@ -102,9 +124,8 @@ function keyUp(code, kc){
     }));
 }
 
-/* ===== JUMP: TAP ANYWHERE (EXCEPT BUTTONS) ===== */
+/* ===== JUMP (TOUCH SCREEN, TRỪ NÚT) ===== */
 let jumping=false;
-
 document.addEventListener("touchstart",e=>{
     if(e.target.classList.contains("control")) return;
     jumping=true;
@@ -148,7 +169,6 @@ function bindHold(btn, dir){
         }
     });
 }
-
 bindHold(leftBtn,"left");
 bindHold(rightBtn,"right");
 
