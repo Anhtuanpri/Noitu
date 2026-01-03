@@ -277,7 +277,6 @@
             margin-left: 10px;
         }
 
-        /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -374,11 +373,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ⚠️ PASTE API KEY CỦA BẠN VÀO ĐÂY (thay chữ YOUR_API_KEY_HERE)
+        // ⚠️⚠️⚠️ PASTE API KEY CỦA BẠN VÀO ĐÂY ⚠️⚠️⚠️
         const OPENAI_API_KEY = "YOUR_API_KEY_HERE";
-
-        window.db = db;
-        window.dbRef = { ref, set, update, onValue, push, get };
 
         // Global state
         let currentRoom = null;
@@ -386,7 +382,6 @@
         let isAdmin = false;
         let gameEnded = false;
 
-        // Load saved data from localStorage
         function loadSavedData() {
             const saved = localStorage.getItem('gameData');
             if (saved) {
@@ -395,7 +390,6 @@
             return null;
         }
 
-        // Save data to localStorage - BAO GỒM ADMIN STATUS
         function saveData(roomId, name, isAdminFlag) {
             localStorage.setItem('gameData', JSON.stringify({
                 roomId,
@@ -423,17 +417,14 @@
             currentRoom = roomId;
             currentPlayer = name;
             
-            // Check admin code
             const wantsAdmin = adminCode === '172727.7777';
 
-            // Initialize room structure
             const roomRef = ref(db, `rooms/${roomId}`);
             const snapshot = await get(roomRef);
 
             let isNewRoom = false;
 
             if (!snapshot.exists()) {
-                // Create new room
                 await set(roomRef, {
                     state: { root: null, gameActive: false },
                     players: {},
@@ -443,14 +434,12 @@
                 isNewRoom = true;
             }
 
-            // Check if user is already admin in Firebase
             const adminsSnapshot = await get(ref(db, `rooms/${roomId}/admins`));
             const admins = adminsSnapshot.val() || {};
             
             if (admins[name]) {
                 isAdmin = true;
             } else if (wantsAdmin) {
-                // Try to become admin
                 if (Object.keys(admins).length < 3) {
                     const adminRef = ref(db, `rooms/${roomId}/admins/${name}`);
                     await set(adminRef, true);
@@ -463,10 +452,8 @@
                 isAdmin = false;
             }
 
-            // Save to localStorage WITH admin status
             saveData(roomId, name, isAdmin);
 
-            // Add/update player
             const playerRef = ref(db, `rooms/${roomId}/players/${name}`);
             const playerSnapshot = await get(playerRef);
             
@@ -477,7 +464,6 @@
                 });
             }
 
-            // Switch to game panel
             document.getElementById('setupPanel').classList.remove('active');
             document.getElementById('gamePanel').classList.add('active');
             document.getElementById('roomDisplay').textContent = roomId;
@@ -488,10 +474,8 @@
                 document.getElementById('adminControls').classList.remove('hidden');
             }
 
-            // Listen to game state
             listenToGame(roomId);
 
-            // Generate root word if new room
             if (isNewRoom) {
                 await generateRootWord(roomId);
             }
@@ -541,7 +525,6 @@
                     stack: error.stack
                 });
                 
-                // Detailed error message
                 let errorMsg = 'Lỗi khi tạo từ gốc!\n\n';
                 if (error.message.includes('401')) {
                     errorMsg += '❌ API Key không hợp lệ hoặc đã hết hạn.\nVui lòng kiểm tra lại API key trong code!';
@@ -558,33 +541,28 @@
         }
 
         function listenToGame(roomId) {
-            // Listen to state
             const stateRef = ref(db, `rooms/${roomId}/state`);
             onValue(stateRef, (snapshot) => {
                 const state = snapshot.val();
                 if (state && state.root) {
                     document.getElementById('rootWord').textContent = state.root;
                     
-                    // Hide start button when game is active
                     if (state.gameActive) {
                         document.getElementById('startGameBtn').classList.add('hidden');
                     }
                 } else {
                     document.getElementById('rootWord').textContent = 'Chờ admin bắt đầu...';
-                    // Show start button for admin when no game
                     if (isAdmin) {
                         document.getElementById('startGameBtn').classList.remove('hidden');
                     }
                 }
             });
 
-            // Listen to players
             const playersRef = ref(db, `rooms/${roomId}/players`);
             onValue(playersRef, async (snapshot) => {
                 const players = snapshot.val() || {};
                 await updatePlayersList(players, roomId);
 
-                // Check game end condition
                 const alivePlayers = Object.entries(players).filter(([_, p]) => p.alive);
                 const stateSnapshot = await get(ref(db, `rooms/${roomId}/state`));
                 const state = stateSnapshot.val();
@@ -595,7 +573,6 @@
                 }
             });
 
-            // Listen to chat
             const chatRef = ref(db, `rooms/${roomId}/chat`);
             onValue(chatRef, (snapshot) => {
                 const messages = snapshot.val() || {};
@@ -674,7 +651,6 @@
 
             input.value = '';
 
-            // Check if player is alive
             const playerSnapshot = await get(ref(db, `rooms/${currentRoom}/players/${currentPlayer}`));
             const playerData = playerSnapshot.val();
 
@@ -683,13 +659,11 @@
                 return;
             }
 
-            // Check if player is banned from chat (dead and not admin)
             if (!playerData.alive && !isAdmin) {
                 alert('Bạn đã bị loại và không thể chat!');
                 return;
             }
 
-            // Handle commands
             if (message === '/bot' || message === '/botgpt') {
                 await addSystemMessage(currentRoom, '🤖 GPT đang được sử dụng để chấm điểm!');
                 return;
@@ -704,7 +678,6 @@
                 return;
             }
 
-            // Get current state
             const stateSnapshot = await get(ref(db, `rooms/${currentRoom}/state`));
             const state = stateSnapshot.val();
 
@@ -713,10 +686,8 @@
                 return;
             }
 
-            // Validate answer using AI
             const isValid = await validateWithAI(state.root, message);
 
-            // Add to chat
             const chatRef = ref(db, `rooms/${currentRoom}/chat`);
             const newMsgRef = push(chatRef);
             await set(newMsgRef, {
@@ -728,17 +699,14 @@
             });
 
             if (isValid.valid) {
-                // Update score
                 await update(ref(db, `rooms/${currentRoom}/players/${currentPlayer}`), {
                     score: (playerData.score || 0) + 1
                 });
 
-                // Update root word
                 await update(ref(db, `rooms/${currentRoom}/state`), {
                     root: isValid.next
                 });
             } else {
-                // Mark as dead (even admin)
                 await update(ref(db, `rooms/${currentRoom}/players/${currentPlayer}`), {
                     alive: false
                 });
@@ -810,18 +778,15 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
 
             await addSystemMessage(roomId, `🏁 GAME KẾT THÚC! Người chiến thắng: ${leaderboard[0][0]}`);
             
-            // Disable game state
             await update(ref(db, `rooms/${roomId}/state`), {
                 gameActive: false
             });
 
-            // Show start button for admin
             if (isAdmin) {
                 document.getElementById('startGameBtn').classList.remove('hidden');
             }
         }
 
-        // NÚT BẮT ĐẦU GAME MỚI (CHỈ ADMIN)
         window.startNewGame = async function() {
             if (!isAdmin) {
                 alert('Chỉ admin mới có thể bắt đầu game!');
@@ -830,7 +795,6 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
 
             gameEnded = false;
 
-            // Reset all players
             const playersSnapshot = await get(ref(db, `rooms/${currentRoom}/players`));
             const players = playersSnapshot.val() || {};
 
@@ -841,10 +805,8 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
                 });
             }
 
-            // Hide leaderboard
             document.getElementById('leaderboardSection').classList.add('hidden');
 
-            // Generate new root word
             await generateRootWord(currentRoom);
         };
 
@@ -856,9 +818,7 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
 
             gameEnded = false;
 
-            // Reset all players
             const playersSnapshot = await get(ref(db, `rooms/${currentRoom}/players`));
-            const players = players
             const players = playersSnapshot.val() || {};
 
             for (const name of Object.keys(players)) {
@@ -868,26 +828,21 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
                 });
             }
 
-            // Clear chat
             await set(ref(db, `rooms/${currentRoom}/chat`), {});
 
-            // Hide leaderboard
             document.getElementById('leaderboardSection').classList.add('hidden');
 
-            // Generate new root word
             await generateRootWord(currentRoom);
 
             await addSystemMessage(currentRoom, '🔄 Game đã được reset bởi admin!');
         };
 
-        // Auto-restore session on reload - BAO GỒM ADMIN STATUS
         window.addEventListener('load', async () => {
             const saved = loadSavedData();
             if (saved && saved.roomId && saved.name) {
                 document.getElementById('roomIdInput').value = saved.roomId;
                 document.getElementById('nameInput').value = saved.name;
                 
-                // Restore admin code if was admin
                 if (saved.isAdmin) {
                     document.getElementById('adminCodeInput').value = '172727.7777';
                 }
@@ -896,4 +851,3 @@ Trả về JSON: {"valid": true/false, "next": "từ_cuối_của_answer"} nếu
     </script>
 </body>
 </html>
-            
