@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Nối Từ Ghép</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;font-family:system-ui;background:#020617;color:#e5e7eb}
+.header{padding:12px;border-bottom:1px solid #334155}
+.chat{padding:12px;height:calc(100vh - 120px);overflow:auto}
+.msg{margin:6px 0;padding:10px 14px;border-radius:12px}
+.system{background:#1e293b;color:#93c5fd}
+.correct{background:#052e16;color:#4ade80}
+.wrong{background:#450a0a;color:#fca5a5}
+.input{display:flex;padding:10px;gap:8px;border-top:1px solid #334155}
+input{flex:1;padding:12px;border-radius:10px;border:none}
+button{padding:12px 18px;border:none;border-radius:10px;background:#7c3aed;color:white;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div id="rootWord">...</div>
+</div>
+
+<div id="chat" class="chat"></div>
+
+<div class="input">
+  <input id="text" placeholder="Nhập từ ghép">
+  <button onclick="send()">GỬI</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getDatabase, ref, get, update, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+
+const WORD_LIST=[
+  "tổ quốc","quốc gia","gia đình","đình làng",
+  "làng quê","quê hương","hương sắc","sắc đẹp"
+];
+
+const params=new URLSearchParams(location.search);
+const room=params.get("room");
+const name=localStorage.getItem("noitu_name");
+
+const app=initializeApp({
+  apiKey:"AIzaSyBdKC3vCBjHhsakrE1hUYg-2_Vi9JYX3vk",
+  databaseURL:"https://noitu-7dca6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"noitu-7dca6"
+});
+const db=getDatabase(app);
+
+const stateRef=ref(db,`rooms/${room}/state`);
+const chatRef=ref(db,`rooms/${room}/chat`);
+const playerRef=ref(db,`rooms/${room}/players/${name}`);
+
+let eliminated=false;
+let OPENAI_API_KEY=null;
+
+const st=await get(stateRef);
+OPENAI_API_KEY=st.val().gptKey;
+
+function add(text,cls){
+  const d=document.createElement("div");
+  d.className="msg "+cls;
+  d.textContent=text;
+  chat.appendChild(d);
+}
+onChildAdded(chatRef,s=>add(s.val().text,s.val().cls));
+
+async function checkByGPT(root,word){
+  const r=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+OPENAI_API_KEY
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[
+        {role:"system",content:"Bạn là trọng tài nối từ ghép tiếng Việt."},
+        {role:"user",content:`Từ gốc: "${root}"\nNgười chơi: "${word}"\nTrả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}`}
+      ],
+      temperature:0,max_tokens:80
+    })
+  });
+  const j=await r.json();
+  return JSON.parse(j.choices[0].message.content);
+}
+
+window.send = async ()=>{
+  if(eliminated) return;
+
+  const val=text.value.trim().toLowerCase();
+  if(!val) return;
+  text.value="";
+
+  const st=(await get(stateRef)).val();
+
+  try{
+    let next;
+    if(st.mode==="list"){
+      if(!val.startsWith(st.root+" ")) throw 0;
+      next=val.split(" ").pop();
+    }else{
+      const rs=await checkByGPT(st.root,val);
+      if(!rs.valid) throw 0;
+      next=rs.next;
+    }
+
+    await update(stateRef,{root:next});
+    push(chatRef,{text:`✅ ${name}: ${val}`,cls:"correct"});
+
+  }catch{
+    eliminated=true;
+    await update(playerRef,{alive:false});
+    push(chatRef,{text:`❌ ${name} bị loại`,cls:"wrong"});
+  }
+};
+</script>
+</body>
+</html>
