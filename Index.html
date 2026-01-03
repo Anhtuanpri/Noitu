@@ -57,11 +57,10 @@ button.send{
   <div class="card">
     <h2>🔮 NỐI TỪ GHÉP AI</h2>
     <input id="nameInput" placeholder="Tên của bạn">
-    <input id="hostInput" placeholder="Mã host (nếu có)">
-    <button onclick="enter()">Vào chơi</button>
+    <input id="hostInput" placeholder="Mã admin (172727.7777)">
+    <button id="enterBtn">Vào chơi</button>
     <p style="font-size:13px;color:#aaa">
-      Mã admin: <b>172727.7777</b> (tối đa 3)<br>
-      /start list · /bot GPT · /reset (admin)
+      /bot /botgpt · /reset (admin)
     </p>
   </div>
 </div>
@@ -69,25 +68,23 @@ button.send{
 <!-- ROOM -->
 <div id="room" class="room hidden">
   <div class="header">
-    <span>🤖 Trọng tài · <span id="rootWord"></span></span>
-    <button id="adminReset" class="hidden" onclick="adminReset()">RESET</button>
+    <span>🤖 AI Trọng Tài · <span id="rootWord"></span></span>
+    <button id="resetBtn" class="hidden">RESET</button>
   </div>
-
   <div id="chat" class="chat"></div>
-
   <div class="input-row">
     <input id="text" placeholder="Nhập từ ghép hoặc lệnh">
-    <button class="send" onclick="send()">Gửi</button>
+    <button class="send">Gửi</button>
   </div>
 </div>
 
 <script type="module">
-/* ========== CONFIG ========== */
+/* ===== CONFIG ===== */
 const OPENAI_API_KEY = "sk-XXXXXXXXXXXXXXXXXXXXXXXX";
 const HOST_CODE = "172727.7777";
 const MAX_ADMINS = 3;
 
-/* ========== FIREBASE ========== */
+/* ===== FIREBASE ===== */
 import { initializeApp } from
  "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import {
@@ -106,20 +103,25 @@ const db = getDatabase(app);
 const params = new URLSearchParams(location.search);
 const roomId = params.get("room") || "phong-chung";
 
-const stateRef  = ref(db,`rooms/${roomId}/state`);
-const chatRef   = ref(db,`rooms/${roomId}/chat`);
-const playersRef= ref(db,`rooms/${roomId}/players`);
-const adminsRef = ref(db,`rooms/${roomId}/admins`);
+const stateRef   = ref(db,`rooms/${roomId}/state`);
+const chatRef    = ref(db,`rooms/${roomId}/chat`);
+const playersRef = ref(db,`rooms/${roomId}/players`);
+const adminsRef  = ref(db,`rooms/${roomId}/admins`);
 
-/* ========== LOCAL STATE ========== */
-let name="", isAdmin=false;
-let eliminated=false, gameOver=false, mode="list";
+/* ===== STATE ===== */
+let name = localStorage.getItem("noitu_name") || "";
+let isAdmin=false, eliminated=false, gameOver=false;
 let WORDS=[];
 
-/* ========== UI ========== */
-const chat=document.getElementById("chat");
+/* ===== UI ===== */
+const login=document.getElementById("login");
+const room=document.getElementById("room");
+const nameInput=document.getElementById("nameInput");
+const hostInput=document.getElementById("hostInput");
 const rootEl=document.getElementById("rootWord");
-const resetBtn=document.getElementById("adminReset");
+const chat=document.getElementById("chat");
+const resetBtn=document.getElementById("resetBtn");
+nameInput.value=name;
 
 function add(text,cls){
   const d=document.createElement("div");
@@ -129,13 +131,13 @@ function add(text,cls){
   chat.scrollTop=chat.scrollHeight;
 }
 
-/* ========== WORD LIST ========== */
+/* ===== WORD LIST ===== */
 async function loadWords(){
   const r=await fetch("words.txt");
   WORDS=(await r.text()).split("\n").map(w=>w.trim()).filter(Boolean);
 }
 
-/* ========== AI RA ĐỀ ========== */
+/* ===== AI ROOT ===== */
 async function aiRoot(){
   const r=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
@@ -155,8 +157,8 @@ async function aiRoot(){
   return JSON.parse((await r.json()).choices[0].message.content).root;
 }
 
-/* ========== ENTER ========== */
-window.enter = async ()=>{
+/* ===== ENTER ===== */
+document.getElementById("enterBtn").onclick = async ()=>{
   name=nameInput.value.trim();
   if(!name) return;
 
@@ -166,27 +168,23 @@ window.enter = async ()=>{
   login.classList.add("hidden");
   room.classList.remove("hidden");
 
-  /* register player */
+  /* player */
   const pRef=ref(db,`rooms/${roomId}/players/${name}`);
   if(!(await get(pRef)).exists()){
     await set(pRef,{alive:true,score:0});
   }
 
-  /* ADMIN CHECK */
-  const adminsSnap=await get(adminsRef);
-  const admins=adminsSnap.val()||{};
-
+  /* admin */
+  const admins=(await get(adminsRef)).val()||{};
   if(hostInput.value.trim()===HOST_CODE && Object.keys(admins).length<MAX_ADMINS){
     await update(adminsRef,{[name]:true});
     isAdmin=true;
-    resetBtn.classList.remove("hidden");
-    add(`👑 ${name} là admin`, "system");
   }else if(admins[name]){
     isAdmin=true;
-    resetBtn.classList.remove("hidden");
   }
+  if(isAdmin) resetBtn.classList.remove("hidden");
 
-  /* STATE */
+  /* state */
   const sSnap=await get(stateRef);
   if(!sSnap.exists()){
     const root=await aiRoot();
@@ -198,17 +196,13 @@ window.enter = async ()=>{
   }
 };
 
-/* ========== CHAT LISTEN ========== */
-onChildAdded(chatRef,s=>{
-  const d=s.val();
-  add(d.text,d.cls);
-});
+/* ===== CHAT LISTEN ===== */
+onChildAdded(chatRef,s=>add(s.val().text,s.val().cls));
 
-/* ========== CHECKERS ========== */
-function checkByList(root,w){
-  return WORDS.includes(w)&&w.startsWith(root+" ") ? w.split(" ").pop() : null;
-}
-async function checkByGPT(root,w){
+/* ===== GPT CHECK ===== */
+async function gptCheck(root,val){
+  if(!WORDS.includes(val) || !val.startsWith(root+" ")) return {valid:false};
+
   const r=await fetch("https://api.openai.com/v1/chat/completions",{
     method:"POST",
     headers:{
@@ -219,7 +213,7 @@ async function checkByGPT(root,w){
       model:"gpt-4o-mini",
       messages:[
         {role:"system",content:"Chấm nối từ ghép tiếng Việt"},
-        {role:"user",content:`Gốc ${root}, từ ${w}. Trả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}`}
+        {role:"user",content:`Gốc ${root}, từ ${val}. Trả JSON {"valid":true,"next":"từ"} hoặc {"valid":false}`}
       ],
       max_tokens:50
     })
@@ -227,59 +221,40 @@ async function checkByGPT(root,w){
   return JSON.parse((await r.json()).choices[0].message.content);
 }
 
-/* ========== END GAME ========== */
-async function checkEnd(){
-  if(gameOver) return;
+/* ===== RESET ===== */
+async function handleReset(){
+  if(!isAdmin) return;
+  eliminated=false; gameOver=false;
+  await set(stateRef,null);
   const ps=(await get(playersRef)).val()||{};
-  const alive=Object.entries(ps).filter(([_,v])=>v.alive);
-  if(alive.length!==1) return;
-
-  gameOver=true;
-  const rank=Object.entries(ps)
-    .sort((a,b)=>(b[1].score||0)-(a[1].score||0))
-    .map(([n,v],i)=>`${i+1}. ${n} (${v.score||0})`).join("\n");
-
-  push(chatRef,{
-    text:`🏆 ${alive[0][0]} thắng!\n📊 BXH:\n${rank}`,
-    cls:"system"
-  });
+  for(const p in ps){
+    await update(ref(db,`rooms/${roomId}/players/${p}`),{
+      alive:true,score:0
+    });
+  }
+  add("🔁 Admin reset game","system");
 }
 
-/* ========== SEND ========== */
-window.send = async ()=>{
-  const val=text.value.trim().toLowerCase();
+/* ===== SEND ===== */
+document.querySelector(".send").onclick = async ()=>{
+  let val=text.value.trim().toLowerCase();
   if(!val) return;
   text.value="";
 
-  /* ADMIN luôn chat được */
   if(!isAdmin && (eliminated||gameOver)) return;
 
-  if(val==="/reset"){
-    if(!isAdmin) return;
-    eliminated=false; gameOver=false;
-    await set(stateRef,null);
-    await set(playersRef,null);
-    add("🔁 Admin reset game","system");
+  if(val==="/reset"){ await handleReset(); return; }
+  if(val==="/bot"||val==="/botgpt"){
+    add(`🤖 ${name} bật GPT chấm`,"system");
     return;
   }
 
-  if(val==="/start"){mode="list";return;}
-  if(val==="/bot"){mode="bot";return;}
-
   const st=(await get(stateRef)).val();
-
   try{
-    let next;
-    if(mode==="list"){
-      next=checkByList(st.root,val);
-      if(!next) throw 0;
-    }else{
-      const rs=await checkByGPT(st.root,val);
-      if(!rs.valid) throw 0;
-      next=rs.next;
-    }
+    const rs=await gptCheck(st.root,val);
+    if(!rs.valid) throw 0;
 
-    await update(stateRef,{root:next});
+    await update(stateRef,{root:rs.next});
     if(!isAdmin){
       const sRef=ref(db,`rooms/${roomId}/players/${name}/score`);
       await set(sRef,((await get(sRef)).val()||0)+1);
@@ -296,11 +271,18 @@ window.send = async ()=>{
     }
   }
 
-  await checkEnd();
+  const ps=(await get(playersRef)).val()||{};
+  const alive=Object.entries(ps).filter(([_,v])=>v.alive);
+  if(alive.length===1 && !gameOver){
+    gameOver=true;
+    const rank=Object.entries(ps)
+      .sort((a,b)=>(b[1].score||0)-(a[1].score||0))
+      .map(([n,v],i)=>`${i+1}. ${n} (${v.score||0})`).join("\n");
+    push(chatRef,{text:`🏆 ${alive[0][0]} thắng!\n📊 BXH:\n${rank}`,cls:"system"});
+  }
 };
 
-window.adminReset=()=>send("/reset");
+resetBtn.onclick = handleReset;
 </script>
-
 </body>
 </html>
